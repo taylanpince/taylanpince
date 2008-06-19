@@ -1,0 +1,229 @@
+/*
+ *	Title: Screen CSS Styles for taylanpince.com
+ *	Date: June 19, 2008
+ *  Author: Taylan Pince (taylanpince@gmail.com)
+ */
+
+
+/* @group Global */
+
+body {
+    font: 14px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
+    background: #32331d url("../images/bg-header.png") top left repeat-x;
+    line-height: 20px;
+    opacity: 0.999999;
+}
+
+/* @end */
+
+
+/* @group Headers */
+
+h1 {
+    font: 50px Georgia, "Times New Roman", Times, serif;
+    color: #787746;
+    padding: 0px 0px 12px 0px;
+    border-bottom: 1px solid #787746;
+    margin: 0px 0px 20px 0px;
+}
+
+h2 {
+    
+}
+
+h3 {
+    
+}
+
+/* @end */
+
+
+/* @group Text */
+
+p {
+	
+}
+
+blockquote {
+	
+}
+
+q {
+	
+}
+
+pre {
+	
+}
+
+code {
+	
+}
+
+hr {
+	
+}
+
+span.amp {
+    font-family: Baskerville, "Goudy Old Style", "Palatino", "Book Antiqua", serif;
+    font-style: italic;
+    color: #787746;
+}
+
+/* @end */
+
+
+/* @group Links */
+
+a,
+a:link,
+a:active,
+a:visited {
+	text-decoration: none;
+}
+
+a:hover {
+	
+}
+
+/* @end */
+
+
+/* @group Lists */
+
+ul {
+
+}
+
+li {
+	
+}
+
+ol {
+	
+}
+
+/* @end */
+
+
+/* @group Forms */
+
+form {
+	
+}
+
+label {
+	
+}
+
+input,
+select,
+textarea {
+	
+}
+
+/* @end */
+
+
+/* @group Header */
+
+#Header {
+    padding: 13px 0px 0px 25px;
+    font: 16px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
+    color: #8f8f8f;
+    text-shadow: 0 0 0 #000;
+}
+
+#Header strong {
+    font: 36px Georgia, "Times New Roman", Times, serif;
+    color: #b4af91;
+    margin: 0px 10px 0px 0px;
+}
+
+/* @end */
+
+
+/* @group Navigation */
+
+#Navigation {
+    overflow: hidden;
+    position: static;
+    width: 880px;
+    margin: 20px 0px 0px 0px;
+    padding: 0px 0px 0px 20px;
+}
+
+#Navigation li {
+    float: left;
+    display: inline;
+    width: 120px;
+    margin: 0px 40px 0px 0px;
+}
+
+#Navigation li a {
+    display: block;
+    padding: 5px;
+    font: 12px Georgia, "Times New Roman", Times, serif;
+    font-style: italic;
+    color: #FFF;
+    text-shadow: 0 0 0 #000;
+}
+
+#Navigation li a:hover,
+#Navigation li a.active {
+    background-color: #c03000;
+}
+
+#Navigation li a strong {
+    display: block;
+    font: 16px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
+    font-style: none;
+    font-weight: bold;
+    color: #d0cdb8;
+    line-height: 20px;
+    margin: 0px 0px 4px 0px;
+}
+
+#Navigation li a:hover strong,
+#Navigation li a.active strong {
+    color: #FFF;
+}
+
+/* @end */
+
+
+/* @group Content */
+
+#Content {
+    padding: 20px 0px 20px 25px;
+    background: #d0cdb8 url("../images/bg-content.png") top left repeat-x;
+}
+
+#ContentWrapper {
+    width: 870px;
+}
+
+/* @end */
+
+
+/* @group Footer */
+
+#Footer {
+    padding: 20px 0px 20px 25px;
+    background: #c0bf99 url("../images/bg-footer.png") bottom left repeat-x;
+}
+
+/* @end */
+
+
+/* @group Copyright */
+
+#Copyright {
+    font: 11px Georgia, "Times New Roman", Times, serif;
+    font-style: italic;
+    color: #d0cdb8;
+    padding: 0px 0px 0px 25px;
+    text-shadow: 0 0 0 #000;
+}
+
+/* @end */
