@@ -37,13 +37,52 @@
     <div id="Content">
         <div id="ContentWrapper">
             
-            <h1>Blog</h1>
+            <h1>Lorem ipsum dolor</h1>
         
-            <h2>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</h2>
+            <h2>Lorem ipsum <strong>dolor sit</strong> amet, consectetur adipisicing elit, sed do <em>eiusmod</em> tempor incididunt ut labore et dolore magna aliqua.  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</h2>
         
+            <p>Lorem ipsum dolor sit amet, <strong>consectetur</strong> adipisicing elit, sed do <em>eiusmod tempor</em> incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+            
+            <blockquote>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do <strong>eiusmod tempor</strong> incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</blockquote>
+            
             <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
             
+            <img src="images/asset-image.jpg" alt="A fish trapped in a plastic bag" />
             
+            <h3>Tempor incididunt ut labore</h3>
+            
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor <code>incididunt ut labore</code> et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+            
+            <pre><code>class Comment(models.Model):
+    """ A comment for a blog post """
+
+    user = models.ForeignKey(User, verbose_name=_("Author"))
+    post = models.ForeignKey(Post, raw_id_admin=True, verbose_name=_("Post"))
+    content = models.TextField(_("HTML Content"), blank=True, editable=False)
+    content_md = models.TextField(_("Content"))
+    public = models.BooleanField(_("Public"), default=True)
+    post_date = models.DateTimeField(_("Post Date"), blank=True, auto_now_add=True, editable=False)
+    save_date = models.DateTimeField(_("Last Update"), blank=True, auto_now=True, editable=False)</code></pre>
+                        
+            <h3>Ea commodo consequat</h3>
+            
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor <strong>incididunt ut labore</strong>:</p>
+            
+            <ol>
+                <li>Consectetur adipisicing elit</li>
+                <li>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat</li>
+                <li>Incididunt ut labore et dolore magna aliqua</li>
+            </ol>
+            
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+            
+            <ul>
+                <li>Consectetur adipisicing elit</li>
+                <li>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat</li>
+                <li>Incididunt ut labore et dolore magna aliqua</li>
+            </ul>
+            
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
             
         </div>
     </div>

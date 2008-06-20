@@ -8,8 +8,9 @@
 /* @group Global */
 
 body {
-    font: 14px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
+    font: 13px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
     background: #32331d url("../images/bg-header.png") top left repeat-x;
+    color: #333;
     line-height: 20px;
     opacity: 0.999999;
 }
@@ -24,15 +25,21 @@ h1 {
     color: #787746;
     padding: 0px 0px 12px 0px;
     border-bottom: 1px solid #787746;
-    margin: 0px 0px 20px 0px;
+    margin: 0px 0px 25px 0px;
 }
 
 h2 {
-    
+    font: 20px Georgia, "Times New Roman", Times, serif;
+    color: #000;
+    line-height: 30px;
+    margin: 0px 0px 20px 0px;
 }
 
 h3 {
-    
+    font: 13px Georgia, "Times New Roman", Times, serif;
+    font-weight: bold;
+    color: #000;
+    margin: 0px 0px 6px 0px;
 }
 
 /* @end */
@@ -41,11 +48,17 @@ h3 {
 /* @group Text */
 
 p {
-	
+	margin: 0px 0px 20px 0px;
 }
 
 blockquote {
-	
+    font: 16px Georgia, "Times New Roman", Times, serif;
+    font-style: italic;
+    line-height: 24px;
+    border-left: 3px solid #787746;
+    padding: 0px 0px 0px 20px;
+	margin: 0px 0px 20px 0px;
+	color: #787746;
 }
 
 q {
@@ -53,11 +66,19 @@ q {
 }
 
 pre {
-	
+	overflow: hidden;
+	padding: 10px 0px 10px 20px;
+	margin: 0px 0px 20px 0px;
+	background-color: #b4af91;
 }
 
 code {
-	
+	font: 12px "Bitstream Vera Sans Mono", "Andale Mono", Monaco, monospace;
+	color: #000;
+}
+
+p code {
+    font-size: 13px;
 }
 
 hr {
@@ -91,16 +112,21 @@ a:hover {
 
 /* @group Lists */
 
-ul {
-
+ul,
+ol {
+    margin: 0px 0px 20px 0px;
 }
 
 li {
-	
+	margin: 0px 0px 10px 30px;
 }
 
-ol {
-	
+ol li {
+    list-style-type: decimal;
+}
+
+ul li {
+    list-style-type: square;
 }
 
 /* @end */
@@ -195,12 +221,17 @@ textarea {
 /* @group Content */
 
 #Content {
-    padding: 20px 0px 20px 25px;
-    background: #d0cdb8 url("../images/bg-content.png") top left repeat-x;
+    padding: 25px 0px 20px 25px;
+    background: #d0cdb8 url("../images/bg-body.png") top left repeat-x;
 }
 
 #ContentWrapper {
     width: 870px;
+}
+
+#Content img {
+    margin: 0px 0px 20px 0px;
+    border: 10px solid #b4af91;
 }
 
 /* @end */
