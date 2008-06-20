@@ -38,6 +38,7 @@ h2 {
 h3 {
     font: 20px Georgia, "Times New Roman", Times, serif;
     color: #787746;
+    margin: 0px 0px 10px 0px;
 }
 
 h4 {
@@ -119,6 +120,10 @@ span.arrow {
     font-style: normal;
 }
 
+span.number {
+    font: 13px Georgia, "Times New Roman", Times, serif;
+}
+
 /* @end */
 
 
@@ -189,7 +194,7 @@ textarea {
 }
 
 input.submit {
-    border: none;
+    border: 2px solid #6d1b00;
     margin: 0px;
     padding: 0px 6px 2px 6px;
     background-color: #c03000;
@@ -297,6 +302,67 @@ input.submit {
 #Content img {
     margin: 0px 0px 20px 0px;
     border: 10px solid #b4af91;
+}
+
+ul.toolbar {
+    overflow: hidden;
+    position: static;
+    width: 870px;
+    border-top: 1px solid #787746;
+    margin: 0px 0px 30px 0px;
+}
+
+ul.toolbar li {
+    float: right;
+    display: inline;
+    list-style-type: none;
+    border-right: 1px solid #787746;
+    padding: 6px 12px 6px 0px;
+    margin: 0px 0px 0px 15px;
+}
+
+ul.toolbar li.first-child {
+    border: none;
+}
+
+/* @end */
+
+
+/* @group Comments */
+
+#Comments {
+    
+}
+
+#Comments li {
+    overflow: hidden;
+    position: static;
+    width: 870px;
+    border-top: 1px solid #787746;
+    padding: 10px 0px 0px 0px;
+    margin: 0px 0px 20px 0px;
+}
+
+#Comments li .comment-content {
+    float: left;
+    display: inline;
+    width: 680px;
+    margin: 0px 40px 0px 0px;
+}
+
+#Comments li .comment-author {
+    float: left;
+    display: inline;
+    width: 150px;
+}
+
+#Comments li .comment-author img {
+    border-width: 5px;
+    margin-bottom: 4px;
+}
+
+#Comments li .comment-author p {
+    margin-bottom: 0px;
 }
 
 /* @end */
