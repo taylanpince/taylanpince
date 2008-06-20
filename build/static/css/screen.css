@@ -193,14 +193,62 @@ textarea {
 	margin: 0px;
 }
 
-input.submit {
+input:focus,
+textarea:focus {
+    background-color: #FFF;
+}
+
+input.submit,
+input.button {
     border: 2px solid #6d1b00;
-    margin: 0px;
+    margin: 0px 10px 0px 0px;
     padding: 0px 6px 2px 6px;
     background-color: #c03000;
     color: #FFF;
-    font-size: 20px;
+    font-size: 13px;
+}
+
+form li {
+    overflow: hidden;
+    position: static;
+    width: 870px;
+    margin: 0px 0px 10px 0px;
+    list-style-type: none;
+}
+
+form li label {
+    float: left;
+    display: inline;
+    width: 100px;
+    margin: 0px 10px 0px 0px;
     font-weight: bold;
+}
+
+form li input.text,
+form li select,
+form li textarea {
+    float: left;
+    display: inline;
+}
+
+form li input.text,
+form li textarea {
+    width: 400px;
+}
+
+form li textarea {
+    height: 200px;
+}
+
+form li p.help {
+    clear: both;
+    padding: 4px 0px 0px 110px;
+    margin: 0px;
+    font-size: 11px;
+}
+
+form li.padded {
+    padding: 0px 0px 0px 110px;
 }
 
 /* @end */
@@ -331,7 +379,7 @@ ul.toolbar li.first-child {
 /* @group Comments */
 
 #Comments {
-    
+    margin: 0px 0px 30px 0px;
 }
 
 #Comments li {
@@ -346,14 +394,14 @@ ul.toolbar li.first-child {
 #Comments li .comment-content {
     float: left;
     display: inline;
-    width: 680px;
+    width: 670px;
     margin: 0px 40px 0px 0px;
 }
 
 #Comments li .comment-author {
     float: left;
     display: inline;
-    width: 150px;
+    width: 160px;
 }
 
 #Comments li .comment-author img {
@@ -363,6 +411,11 @@ ul.toolbar li.first-child {
 
 #Comments li .comment-author p {
     margin-bottom: 0px;
+}
+
+#CommentForm {
+    padding: 10px 0px 0px 0px;
+    border-top: 1px solid #787746;
 }
 
 /* @end */
@@ -413,6 +466,11 @@ ul.toolbar li.first-child {
 #Footer h6 a {
     color: #1b1b1b;
     border: none;
+}
+
+#Footer input.submit {
+    font-size: 20px;
+    font-weight: bold;
 }
 
 /* @end */

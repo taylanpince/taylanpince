@@ -16,7 +16,7 @@ $.extend($.namespace("core.TaylanPince"), {
 		$("li:first-child").addClass("first-child");
         
 		$("input[@type=text]").addClass("text");
-		$("input[@type=submit]").addClass("submit");
+		$("input[@type=submit], input[@type=button]").addClass("submit");
 		$("input[@type=password]").addClass("text");
 		$("input[@type=file]").addClass("file");
 		$("input[@type=radio]").addClass("radio");
