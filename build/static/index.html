@@ -17,6 +17,7 @@
     </style>
     
     <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/jquery.namespace.js"></script>
     <script type="text/javascript" src="js/taylanpince.js"></script>
     
 </head>
@@ -24,7 +25,7 @@
 <body>
 
     <div id="Header">
-        <strong>Taylan Pince</strong> web development <span class="amp">&amp;</span> design
+        <strong><a href="#">Taylan Pince</a></strong> <span id="HeaderCall">web development <span class="amp">&amp;</span> design</span>
     </div>
     
     <ul id="Navigation">
@@ -39,9 +40,9 @@
             
             <h1>Lorem ipsum dolor</h1>
         
-            <h2>Lorem ipsum <strong>dolor sit</strong> amet, consectetur adipisicing elit, sed do <em>eiusmod</em> tempor incididunt ut labore et dolore magna aliqua.  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</h2>
+            <h2>Lorem ipsum <strong>dolor sit</strong> amet, <a href="#">consectetur adipisicing elit</a>, sed do <em>eiusmod</em> tempor incididunt ut labore et dolore magna aliqua.  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</h2>
         
-            <p>Lorem ipsum dolor sit amet, <strong>consectetur</strong> adipisicing elit, sed do <em>eiusmod tempor</em> incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+            <p>Lorem ipsum dolor sit amet, <strong>consectetur</strong> adipisicing elit, sed do <em>eiusmod tempor</em> incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea <a href="#">commodo consequat</a>. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
             
             <blockquote>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do <strong>eiusmod tempor</strong> incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</blockquote>
             
@@ -49,9 +50,11 @@
             
             <img src="images/asset-image.jpg" alt="A fish trapped in a plastic bag" />
             
-            <h3>Tempor incididunt ut labore</h3>
+            <hr />
             
-            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor <code>incididunt ut labore</code> et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+            <h5>Tempor incididunt ut labore</h5>
+            
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor <code>incididunt ut labore</code> et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate <a href="#">velit esse cillum dolore</a> eu fugiat nulla pariatur.</p>
             
             <pre><code>class Comment(models.Model):
     """ A comment for a blog post """
@@ -64,12 +67,12 @@
     post_date = models.DateTimeField(_("Post Date"), blank=True, auto_now_add=True, editable=False)
     save_date = models.DateTimeField(_("Last Update"), blank=True, auto_now=True, editable=False)</code></pre>
                         
-            <h3>Ea commodo consequat</h3>
+            <h5>Ea commodo consequat</h5>
             
             <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor <strong>incididunt ut labore</strong>:</p>
             
             <ol>
-                <li>Consectetur adipisicing elit</li>
+                <li>Consectetur <a href="#">adipisicing</a> elit</li>
                 <li>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat</li>
                 <li>Incididunt ut labore et dolore magna aliqua</li>
             </ol>
@@ -82,13 +85,54 @@
                 <li>Incididunt ut labore et dolore magna aliqua</li>
             </ul>
             
-            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco <a href="#">laboris nisi ut</a> aliquip ex ea commodo consequat.</p>
             
         </div>
     </div>
     
     <div id="Footer">
-        &nbsp;
+        <ul id="FooterWrapper">
+            <li>
+                <h4>About Me</h4>
+                <p>Taylan Pince is a web developer working with open source backend technologies as well as interface development. He has some interest in design, too. <a href="#">Read More &raquo;</a></p>
+                
+                <hr />
+                
+                <h4 class="rss">RSS Feeds</h4>
+                <ul>
+                    <li><a href="#">Combined Feed</a></li>
+                    <li><a href="#">Articles</a></li>
+                    <li><a href="#">Links</a></li>
+                    <li><a href="#">Reviews</a></li>
+                </ul>
+            </li>
+            
+            <li>
+                <h4>Recent Links</h4>
+                <ul>
+                    <li>
+                        <h6><a href="#">Lorem ipsum dolor sit</a></h6>
+                        <p>Consectetur adipisicing elit, sed do eiusmod tempor incididunt. <a href="#" class="no-border">&raquo;</a></p>
+                    </li>
+                    <li>
+                        <h6><a href="#">Tempor incididunt ut labore</a></h6>
+                        <p>Consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. <a href="#" class="no-border">&raquo;</a></p>
+                    </li>
+                    <li>
+                        <h6><a href="#">Aliquip ex ea commodo</a></h6>
+                        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip. <a href="#" class="no-border">&raquo;</a></p>
+                    </li>
+                </ul>
+            </li>
+            
+            <li>
+                <h4>Search</h4>
+                <form>
+                    <input type="text" />
+                    <input type="submit" value="&raquo;" />
+                </form>
+            </li>
+        </ul>
     </div>
     
     <p id="Copyright">&copy; Copyright 2001-2008 Taylan Pince. All rights reserved.</p>
