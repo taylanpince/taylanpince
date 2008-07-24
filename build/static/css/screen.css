@@ -257,10 +257,24 @@ form li.padded {
 /* @group Header */
 
 #Header {
-    padding: 13px 0px 0px 25px;
+    height: 100px;
+    padding: 0px 0px 0px 25px;
     font: 16px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
     color: #8f8f8f;
     text-shadow: 0 0 0 #000;
+}
+
+#HeaderWrapper {
+    width: 880px;
+}
+
+#HeaderLogo,
+#HeaderLogo:hover {
+    float: right;
+    display: inline;
+    border: none;
+    padding: 0px;
+    background-color: transparent;
 }
 
 #Header strong {
@@ -291,20 +305,22 @@ form li.padded {
 #Navigation {
     overflow: hidden;
     position: static;
-    width: 880px;
-    margin: 20px 0px 0px 0px;
-    padding: 0px 0px 0px 20px;
+    width: 680px;
+    height: 100px;
+    margin: 0px 0px 0px 0px;
+    padding: 0px 0px 0px 0px;
 }
 
 #Navigation li {
     float: left;
     display: inline;
     width: 120px;
-    margin: 0px 40px 0px 0px;
+    margin: 41px 40px 0px 0px;
 }
 
 #Navigation li a {
     display: block;
+    height: 51px;
     padding: 10px 5px 10px 5px;
     font: 12px Georgia, "Times New Roman", Times, serif;
     font-style: italic;
