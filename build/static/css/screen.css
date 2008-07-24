@@ -305,7 +305,7 @@ form li.padded {
 
 #Navigation li a {
     display: block;
-    padding: 5px;
+    padding: 10px 5px 10px 5px;
     font: 12px Georgia, "Times New Roman", Times, serif;
     font-style: italic;
     color: #FFF;
@@ -367,6 +367,12 @@ ul.toolbar li {
     border-right: 1px solid #787746;
     padding: 6px 12px 6px 0px;
     margin: 0px 0px 0px 15px;
+    font-size: 12px;
+}
+
+ul.toolbar li a {
+    color: #787746;
+    border-color: #787746;
 }
 
 ul.toolbar li.first-child {
@@ -378,44 +384,66 @@ ul.toolbar li.first-child {
 
 /* @group Comments */
 
-#Comments {
+#CommentsList {
     margin: 0px 0px 30px 0px;
 }
 
-#Comments li {
+#CommentsList li {
     overflow: hidden;
     position: static;
     width: 870px;
     border-top: 1px solid #787746;
-    padding: 10px 0px 0px 0px;
+    padding: 15px 0px 0px 0px;
     margin: 0px 0px 20px 0px;
 }
 
-#Comments li .comment-content {
+#CommentsList li .comment-content {
     float: left;
     display: inline;
     width: 670px;
     margin: 0px 40px 0px 0px;
 }
 
-#Comments li .comment-author {
+#CommentsList li .comment-author {
     float: left;
     display: inline;
     width: 160px;
 }
 
-#Comments li .comment-author img {
+#CommentsList li .comment-author img {
     border-width: 5px;
     margin-bottom: 4px;
 }
 
-#Comments li .comment-author p {
+#CommentsList li .comment-author p {
     margin-bottom: 0px;
+    font-size: 12px;
 }
 
 #CommentForm {
-    padding: 10px 0px 0px 0px;
+    width: 870px;
+    overflow: hidden;
+    position: static;
+    padding: 15px 0px 0px 0px;
     border-top: 1px solid #787746;
+}
+
+#CommentForm ul {
+    float: left;
+    display: inline;
+    width: 540px;
+    margin: 0px 10px 0px 0px;
+}
+
+#CommentForm ul li {
+    width: 540px;
+}
+
+#MarkDownCheatSheet {
+    float: left;
+    display: inline;
+    width: 320px;
+    display: none;
 }
 
 /* @end */
@@ -457,6 +485,11 @@ ul.toolbar li.first-child {
     margin: 0px 0px 6px 0px;
 }
 
+#FooterWrapper li ul.rss li {
+    padding-left: 20px;
+    background: transparent url("../images/icon-rss.png") 0px 3px no-repeat;
+}
+
 #Footer div.hr {
     border-top: 1px solid #32331d;
     padding: 0px;
@@ -468,9 +501,14 @@ ul.toolbar li.first-child {
     border: none;
 }
 
-#Footer input.submit {
+#SearchForm {
+    margin: 0px 0px 20px 0px;
+}
+
+#SearchForm input.submit {
     font-size: 20px;
     font-weight: bold;
+    margin: 0px;
 }
 
 /* @end */

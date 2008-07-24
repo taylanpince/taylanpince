@@ -41,10 +41,19 @@ $.extend($.namespace("core.TaylanPince"), {
 	        }, "duration": "normal", "queue": true});
 	    });
 	},
+	
+	init_comments : function() {
+	    if ($("#CommentForm").size() > 0) {
+	        $("#MarkDownCheatSheetLink").click(function() {
+	            $("#MarkDownCheatSheet").fadeIn();
+	        }).attr("href", "javascript:void(0);");
+	    }
+	},
     
     init : function() {
         this.init_markers();
         this.init_header();
+        this.init_comments();
     }
     
 });
