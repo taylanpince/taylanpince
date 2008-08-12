@@ -1,17 +1,18 @@
 import base64
-import md5
 import os
 import random
 import sys
 import time
 from datetime import datetime, timedelta
-from django.conf import settings
-from django.core.exceptions import SuspiciousOperation
-
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
+
+from django.conf import settings
+from django.core.exceptions import SuspiciousOperation
+from django.utils.hashcompat import md5_constructor
+
 
 class SessionBase(object):
     """
@@ -72,13 +73,13 @@ class SessionBase(object):
     def encode(self, session_dict):
         "Returns the given session dictionary pickled and encoded as a string."
         pickled = pickle.dumps(session_dict, pickle.HIGHEST_PROTOCOL)
-        pickled_md5 = md5.new(pickled + settings.SECRET_KEY).hexdigest()
+        pickled_md5 = md5_constructor(pickled + settings.SECRET_KEY).hexdigest()
         return base64.encodestring(pickled + pickled_md5)
 
     def decode(self, session_data):
         encoded_data = base64.decodestring(session_data)
         pickled, tamper_check = encoded_data[:-32], encoded_data[-32:]
-        if md5.new(pickled + settings.SECRET_KEY).hexdigest() != tamper_check:
+        if md5_constructor(pickled + settings.SECRET_KEY).hexdigest() != tamper_check:
             raise SuspiciousOperation("User tampered with session cookie.")
         try:
             return pickle.loads(pickled)
@@ -86,6 +87,25 @@ class SessionBase(object):
         # just return an empty dictionary (an empty session).
         except:
             return {}
+
+    def update(self, dict_):
+        self._session.update(dict_)
+        self.modified = True
+
+    def has_key(self, key):
+        return self._session.has_key(key)
+
+    def values(self):
+        return self._session.values()
+
+    def iterkeys(self):
+        return self._session.iterkeys()
+
+    def itervalues(self):
+        return self._session.itervalues()
+
+    def iteritems(self):
+        return self._session.iteritems()
 
     def _get_new_session_key(self):
         "Returns session key that isn't being used."
@@ -97,8 +117,8 @@ class SessionBase(object):
             # No getpid() in Jython, for example
             pid = 1
         while 1:
-            session_key = md5.new("%s%s%s%s" % (random.randint(0, sys.maxint - 1),
-                                  pid, time.time(), settings.SECRET_KEY)).hexdigest()
+            session_key = md5_constructor("%s%s%s%s" % (random.randint(0, sys.maxint - 1),
+                                          pid, time.time(), settings.SECRET_KEY)).hexdigest()
             if not self.exists(session_key):
                 break
         return session_key
@@ -150,8 +170,8 @@ class SessionBase(object):
 
     def set_expiry(self, value):
         """
-        Sets a custom expiration for the session. ``value`` can be an integer, a
-        Python ``datetime`` or ``timedelta`` object or ``None``.
+        Sets a custom expiration for the session. ``value`` can be an integer,
+        a Python ``datetime`` or ``timedelta`` object or ``None``.
 
         If ``value`` is an integer, the session will expire after that many
         seconds of inactivity. If set to ``0`` then the session will expire on

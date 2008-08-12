@@ -14,27 +14,22 @@ from django.dispatch import dispatcher
 from django.conf import settings
 from django.core import validators
 from django import oldforms
-from django import newforms as forms
+from django import forms
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils.datastructures import DictWrapper
 from django.utils.functional import curry
 from django.utils.itercompat import tee
 from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy, ugettext as _
 from django.utils.encoding import smart_unicode, force_unicode, smart_str
-from django.utils.maxlength import LegacyMaxlength
+from django.utils import datetime_safe
 
 class NOT_PROVIDED:
     pass
 
-# Values for filter_interface.
-HORIZONTAL, VERTICAL = 1, 2
-
 # The values to use for "blank" in SelectFields. Will be appended to the start of most "choices" lists.
 BLANK_CHOICE_DASH = [("", "---------")]
 BLANK_CHOICE_NONE = [("", "None")]
-
-# returns the <ul> class for a given radio_admin value
-get_ul_class = lambda x: 'radiolist%s' % ((x == HORIZONTAL) and ' inline' or '')
 
 class FieldDoesNotExist(Exception):
     pass
@@ -66,10 +61,6 @@ def manipulator_validator_unique(f, opts, self, field_data, all_data):
 #     getattr(obj, opts.pk.attname)
 
 class Field(object):
-    # Provide backwards compatibility for the maxlength attribute and
-    # argument for this class and all subclasses.
-    __metaclass__ = LegacyMaxlength
-
     # Designates whether empty strings fundamentally are allowed at the
     # database level.
     empty_strings_allowed = True
@@ -83,14 +74,14 @@ class Field(object):
     def __init__(self, verbose_name=None, name=None, primary_key=False,
             max_length=None, unique=False, blank=False, null=False,
             db_index=False, core=False, rel=None, default=NOT_PROVIDED,
-            editable=True, serialize=True, prepopulate_from=None,
-            unique_for_date=None, unique_for_month=None, unique_for_year=None,
-            validator_list=None, choices=None, radio_admin=None, help_text='',
-            db_column=None, db_tablespace=None, auto_created=False):
+            editable=True, serialize=True, unique_for_date=None,
+            unique_for_month=None, unique_for_year=None, validator_list=None,
+            choices=None, help_text='', db_column=None, db_tablespace=None,
+            auto_created=False):
         self.name = name
         self.verbose_name = verbose_name
         self.primary_key = primary_key
-        self.max_length, self.unique = max_length, unique
+        self.max_length, self._unique = max_length, unique
         self.blank, self.null = blank, null
         # Oracle treats the empty string ('') as null, so coerce the null
         # option whenever '' is a possible value.
@@ -100,11 +91,9 @@ class Field(object):
         self.editable = editable
         self.serialize = serialize
         self.validator_list = validator_list or []
-        self.prepopulate_from = prepopulate_from
         self.unique_for_date, self.unique_for_month = unique_for_date, unique_for_month
         self.unique_for_year = unique_for_year
         self._choices = choices or []
-        self.radio_admin = radio_admin
         self.help_text = help_text
         self.db_column = db_column
         self.db_tablespace = db_tablespace or settings.DEFAULT_INDEX_TABLESPACE
@@ -161,10 +150,15 @@ class Field(object):
         # mapped to one of the built-in Django field types. In this case, you
         # can implement db_type() instead of get_internal_type() to specify
         # exactly which wacky database column type you want to use.
+        data = DictWrapper(self.__dict__, connection.ops.quote_name, "qn_")
         try:
-            return get_creation_module().DATA_TYPES[self.get_internal_type()] % self.__dict__
+            return get_creation_module().DATA_TYPES[self.get_internal_type()] % data
         except KeyError:
             return None
+
+    def unique(self):
+        return self._unique or self.primary_key
+    unique = property(unique)
 
     def validate_full(self, field_data, all_data):
         """
@@ -192,7 +186,8 @@ class Field(object):
     def set_attributes_from_name(self, name):
         self.name = name
         self.attname, self.column = self.get_attname_column()
-        self.verbose_name = self.verbose_name or (name and name.replace('_', ' '))
+        if self.verbose_name is None and name:
+            self.verbose_name = name.replace('_', ' ')
 
     def contribute_to_class(self, cls, name):
         self.set_attributes_from_name(name)
@@ -218,19 +213,30 @@ class Field(object):
         "Returns field's value just before saving."
         return getattr(model_instance, self.attname)
 
+    def get_db_prep_value(self, value):
+        """Returns field's value prepared for interacting with the database
+        backend.
+
+        Used by the default implementations of ``get_db_prep_save``and
+        `get_db_prep_lookup```
+        """
+        return value
+
     def get_db_prep_save(self, value):
         "Returns field's value prepared for saving into a database."
-        return value
+        return self.get_db_prep_value(value)
 
     def get_db_prep_lookup(self, lookup_type, value):
         "Returns field's value prepared for database lookup."
         if hasattr(value, 'as_sql'):
             sql, params = value.as_sql()
             return QueryWrapper(('(%s)' % sql), params)
-        if lookup_type in ('exact', 'regex', 'iregex', 'gt', 'gte', 'lt', 'lte', 'month', 'day', 'search'):
+        if lookup_type in ('regex', 'iregex', 'month', 'day', 'search'):
             return [value]
+        elif lookup_type in ('exact', 'gt', 'gte', 'lt', 'lte'):
+            return [self.get_db_prep_value(value)]
         elif lookup_type in ('range', 'in'):
-            return value
+            return [self.get_db_prep_value(v) for v in value]
         elif lookup_type in ('contains', 'icontains'):
             return ["%%%s%%" % connection.ops.prep_for_like_query(value)]
         elif lookup_type == 'iexact':
@@ -246,19 +252,12 @@ class Field(object):
                 value = int(value)
             except ValueError:
                 raise ValueError("The __year lookup type requires an integer argument")
-            if settings.DATABASE_ENGINE == 'sqlite3':
-                first = '%s-01-01'
-                second = '%s-12-31 23:59:59.999999'
-            elif not connection.features.date_field_supports_time_value and self.get_internal_type() == 'DateField':
-                first = '%s-01-01'
-                second = '%s-12-31'
-            elif not connection.features.supports_usecs:
-                first = '%s-01-01 00:00:00'
-                second = '%s-12-31 23:59:59.99'
+
+            if self.get_internal_type() == 'DateField':
+                return connection.ops.year_lookup_bounds_for_date_field(value)
             else:
-                first = '%s-01-01 00:00:00'
-                second = '%s-12-31 23:59:59.999999'
-            return [first % value, second % value]
+                return connection.ops.year_lookup_bounds(value)
+
         raise TypeError("Field has invalid lookup: %s" % lookup_type)
 
     def has_default(self):
@@ -287,13 +286,9 @@ class Field(object):
             params['max_length'] = self.max_length
 
         if self.choices:
-            if self.radio_admin:
-                field_objs = [oldforms.RadioSelectField]
-                params['ul_class'] = get_ul_class(self.radio_admin)
-            else:
-                field_objs = [oldforms.SelectField]
+            field_objs = [oldforms.SelectField]
 
-            params['choices'] = self.get_choices_default()
+            params['choices'] = self.get_flatchoices()
         else:
             field_objs = self.get_manipulator_field_objs()
         return (field_objs, params)
@@ -320,7 +315,7 @@ class Field(object):
             params['validator_list'].append(getattr(manipulator, 'isUnique%sFor%s' % (self.name, self.unique_for_month)))
         if self.unique_for_year:
             params['validator_list'].append(getattr(manipulator, 'isUnique%sFor%s' % (self.name, self.unique_for_year)))
-        if self.unique or (self.primary_key and not rel):
+        if self.unique and not rel:
             params['validator_list'].append(curry(manipulator_validator_unique, self, opts, manipulator))
 
         # Only add is_required=True if the field cannot be blank. Primary keys
@@ -367,7 +362,8 @@ class Field(object):
         return val
 
     def get_choices(self, include_blank=True, blank_choice=BLANK_CHOICE_DASH):
-        "Returns a list of tuples used as SelectField choices for this field."
+        """Returns choices with a default blank choices included, for use
+        as SelectField choices for this field."""
         first_choice = include_blank and blank_choice or []
         if self.choices:
             return first_choice + list(self.choices)
@@ -379,10 +375,12 @@ class Field(object):
         return first_choice + lst
 
     def get_choices_default(self):
-        if self.radio_admin:
-            return self.get_choices(include_blank=self.blank, blank_choice=BLANK_CHOICE_NONE)
-        else:
-            return self.get_choices()
+        return self.get_choices()
+
+    def get_flatchoices(self, include_blank=True, blank_choice=BLANK_CHOICE_DASH):
+        "Returns flattened choices with a default blank choice included."
+        first_choice = include_blank and blank_choice or []
+        return first_choice + list(self.flatchoices)
 
     def _get_val_from_obj(self, obj):
         if obj:
@@ -415,11 +413,22 @@ class Field(object):
             return self._choices
     choices = property(_get_choices)
 
+    def _get_flatchoices(self):
+        """Flattened version of choices tuple."""
+        flat = []
+        for choice, value in self.choices:
+            if type(value) in (list, tuple):
+                flat.extend(value)
+            else:
+                flat.append((choice,value))
+        return flat
+    flatchoices = property(_get_flatchoices)
+
     def save_form_data(self, instance, data):
         setattr(instance, self.name, data)
 
     def formfield(self, form_class=forms.CharField, **kwargs):
-        "Returns a django.newforms.Field instance for this database Field."
+        "Returns a django.forms.Field instance for this database Field."
         defaults = {'required': not self.blank, 'label': capfirst(self.verbose_name), 'help_text': self.help_text}
         if self.choices:
             defaults['widget'] = forms.Select(choices=self.get_choices(include_blank=self.blank or not (self.has_default() or 'initial' in kwargs)))
@@ -446,6 +455,11 @@ class AutoField(Field):
             return int(value)
         except (TypeError, ValueError):
             raise validators.ValidationError, _("This value must be an integer.")
+
+    def get_db_prep_value(self, value):
+        if value is None:
+            return None
+        return int(value)
 
     def get_manipulator_fields(self, opts, manipulator, change, name_prefix='', rel=False, follow=True):
         if not rel:
@@ -475,6 +489,8 @@ class AutoField(Field):
 class BooleanField(Field):
     def __init__(self, *args, **kwargs):
         kwargs['blank'] = True
+        if 'default' not in kwargs and not kwargs.get('null'):
+            kwargs['default'] = False
         Field.__init__(self, *args, **kwargs)
 
     def get_internal_type(self):
@@ -485,6 +501,11 @@ class BooleanField(Field):
         if value in ('t', 'True', '1'): return True
         if value in ('f', 'False', '0'): return False
         raise validators.ValidationError, _("This value must be either True or False.")
+
+    def get_db_prep_value(self, value):
+        if value is None:
+            return None
+        return bool(value)
 
     def get_manipulator_field_objs(self):
         return [oldforms.CheckboxField]
@@ -547,15 +568,6 @@ class DateField(Field):
         except ValueError:
             raise validators.ValidationError, _('Enter a valid date in YYYY-MM-DD format.')
 
-    def get_db_prep_lookup(self, lookup_type, value):
-        if lookup_type == 'range':
-            value = [smart_unicode(v) for v in value]
-        elif lookup_type in ('exact', 'gt', 'gte', 'lt', 'lte') and hasattr(value, 'strftime'):
-            value = value.strftime('%Y-%m-%d')
-        else:
-            value = smart_unicode(value)
-        return Field.get_db_prep_lookup(self, lookup_type, value)
-
     def pre_save(self, model_instance, add):
         if self.auto_now or (self.auto_now_add and add):
             value = datetime.datetime.now()
@@ -579,23 +591,20 @@ class DateField(Field):
         else:
             return self.editable or self.auto_now or self.auto_now_add
 
-    def get_db_prep_save(self, value):
-        # Casts dates into string format for entry into database.
-        if value is not None:
-            try:
-                value = value.strftime('%Y-%m-%d')
-            except AttributeError:
-                # If value is already a string it won't have a strftime method,
-                # so we'll just let it pass through.
-                pass
-        return Field.get_db_prep_save(self, value)
+    def get_db_prep_value(self, value):
+        # Casts dates into the format expected by the backend
+        return connection.ops.value_to_db_date(self.to_python(value))
 
     def get_manipulator_field_objs(self):
         return [oldforms.DateField]
 
     def flatten_data(self, follow, obj=None):
         val = self._get_val_from_obj(obj)
-        return {self.attname: (val is not None and val.strftime("%Y-%m-%d") or '')}
+        if val is None:
+            data = ''
+        else:
+            data = datetime_safe.new_date(val).strftime("%Y-%m-%d")
+        return {self.attname: data}
 
     def formfield(self, **kwargs):
         defaults = {'form_class': forms.DateField}
@@ -613,33 +622,37 @@ class DateTimeField(DateField):
             return value
         if isinstance(value, datetime.date):
             return datetime.datetime(value.year, value.month, value.day)
+
+        # Attempt to parse a datetime:
+        value = smart_str(value)
+        # split usecs, because they are not recognized by strptime.
+        if '.' in value:
+            try:
+                value, usecs = value.split('.')
+                usecs = int(usecs)
+            except ValueError:
+                raise validators.ValidationError, _('Enter a valid date/time in YYYY-MM-DD HH:MM[ss[.uuuuuu]] format.')
+        else:
+            usecs = 0
+        kwargs = {'microsecond': usecs}
         try: # Seconds are optional, so try converting seconds first.
-            return datetime.datetime(*time.strptime(value, '%Y-%m-%d %H:%M:%S')[:6])
+            return datetime.datetime(*time.strptime(value, '%Y-%m-%d %H:%M:%S')[:6],
+                                     **kwargs)
+
         except ValueError:
             try: # Try without seconds.
-                return datetime.datetime(*time.strptime(value, '%Y-%m-%d %H:%M')[:5])
+                return datetime.datetime(*time.strptime(value, '%Y-%m-%d %H:%M')[:5],
+                                         **kwargs)
             except ValueError: # Try without hour/minutes/seconds.
                 try:
-                    return datetime.datetime(*time.strptime(value, '%Y-%m-%d')[:3])
+                    return datetime.datetime(*time.strptime(value, '%Y-%m-%d')[:3],
+                                             **kwargs)
                 except ValueError:
-                    raise validators.ValidationError, _('Enter a valid date/time in YYYY-MM-DD HH:MM format.')
+                    raise validators.ValidationError, _('Enter a valid date/time in YYYY-MM-DD HH:MM[ss[.uuuuuu]] format.')
 
-    def get_db_prep_save(self, value):
-        # Casts dates into string format for entry into database.
-        if value is not None:
-            # MySQL will throw a warning if microseconds are given, because it
-            # doesn't support microseconds.
-            if not connection.features.supports_usecs and hasattr(value, 'microsecond'):
-                value = value.replace(microsecond=0)
-            value = smart_unicode(value)
-        return Field.get_db_prep_save(self, value)
-
-    def get_db_prep_lookup(self, lookup_type, value):
-        if lookup_type == 'range':
-            value = [smart_unicode(v) for v in value]
-        else:
-            value = smart_unicode(value)
-        return Field.get_db_prep_lookup(self, lookup_type, value)
+    def get_db_prep_value(self, value):
+        # Casts dates into the format expected by the backend
+        return connection.ops.value_to_db_datetime(self.to_python(value))
 
     def get_manipulator_field_objs(self):
         return [oldforms.DateField, oldforms.TimeField]
@@ -662,8 +675,13 @@ class DateTimeField(DateField):
     def flatten_data(self,follow, obj = None):
         val = self._get_val_from_obj(obj)
         date_field, time_field = self.get_manipulator_field_names('')
-        return {date_field: (val is not None and val.strftime("%Y-%m-%d") or ''),
-                time_field: (val is not None and val.strftime("%H:%M:%S") or '')}
+        if val is None:
+            date_data = time_data = ''
+        else:
+            d = datetime_safe.new_datetime(val)
+            date_data = d.strftime('%Y-%m-%d')
+            time_data = d.strftime('%H:%M:%S')
+        return {date_field: date_data, time_field: time_data}
 
     def formfield(self, **kwargs):
         defaults = {'form_class': forms.DateTimeField}
@@ -689,7 +707,7 @@ class DecimalField(Field):
                 _("This value must be a decimal number."))
 
     def _format(self, value):
-        if isinstance(value, basestring):
+        if isinstance(value, basestring) or value is None:
             return value
         else:
             return self.format_number(value)
@@ -699,27 +717,18 @@ class DecimalField(Field):
         Formats a number into a string with the requisite number of digits and
         decimal places.
         """
-        num_chars = self.max_digits
-        # Allow for a decimal point
-        if self.decimal_places > 0:
-            num_chars += 1
-        # Allow for a minus sign
-        if value < 0:
-            num_chars += 1
+        # Method moved to django.db.backends.util.
+        #
+        # It is preserved because it is used by the oracle backend
+        # (django.db.backends.oracle.query), and also for
+        # backwards-compatibility with any external code which may have used
+        # this method.
+        from django.db.backends import util
+        return util.format_number(value, self.max_digits, self.decimal_places)
 
-        return u"%.*f" % (self.decimal_places, value)
-
-    def get_db_prep_save(self, value):
-        if value is not None:
-            value = self._format(value)
-        return super(DecimalField, self).get_db_prep_save(value)
-
-    def get_db_prep_lookup(self, lookup_type, value):
-        if lookup_type == 'range':
-            value = [self._format(v) for v in value]
-        else:
-            value = self._format(value)
-        return super(DecimalField, self).get_db_prep_lookup(lookup_type, value)
+    def get_db_prep_value(self, value):
+        return connection.ops.value_to_db_decimal(self.to_python(value),
+                self.max_digits, self.decimal_places)
 
     def get_manipulator_field_objs(self):
         return [curry(oldforms.DecimalField, max_digits=self.max_digits, decimal_places=self.decimal_places)]
@@ -758,12 +767,15 @@ class FileField(Field):
     def get_internal_type(self):
         return "FileField"
 
-    def get_db_prep_save(self, value):
+    def get_db_prep_value(self, value):
         "Returns field's value prepared for saving into a database."
         # Need to convert UploadedFile objects provided via a form to unicode for database insertion
-        if value is None:
+        if hasattr(value, 'name'):
+            return value.name
+        elif value is None:
             return None
-        return unicode(value)
+        else:
+            return unicode(value)
 
     def get_manipulator_fields(self, opts, manipulator, change, name_prefix='', rel=False, follow=True):
         field_list = Field.get_manipulator_fields(self, opts, manipulator, change, name_prefix, rel, follow)
@@ -806,7 +818,7 @@ class FileField(Field):
         setattr(cls, 'get_%s_filename' % self.name, curry(cls._get_FIELD_filename, field=self))
         setattr(cls, 'get_%s_url' % self.name, curry(cls._get_FIELD_url, field=self))
         setattr(cls, 'get_%s_size' % self.name, curry(cls._get_FIELD_size, field=self))
-        setattr(cls, 'save_%s_file' % self.name, lambda instance, filename, raw_contents, save=True: instance._save_FIELD_file(self, filename, raw_contents, save))
+        setattr(cls, 'save_%s_file' % self.name, lambda instance, filename, raw_field, save=True: instance._save_FIELD_file(self, filename, raw_field, save))
         dispatcher.connect(self.delete_file, signal=signals.post_delete, sender=cls)
 
     def delete_file(self, instance):
@@ -827,11 +839,24 @@ class FileField(Field):
     def save_file(self, new_data, new_object, original_object, change, rel, save=True):
         upload_field_name = self.get_manipulator_field_names('')[0]
         if new_data.get(upload_field_name, False):
-            func = getattr(new_object, 'save_%s_file' % self.name)
             if rel:
-                func(new_data[upload_field_name][0]["filename"], new_data[upload_field_name][0]["content"], save)
+                file = new_data[upload_field_name][0]
             else:
-                func(new_data[upload_field_name]["filename"], new_data[upload_field_name]["content"], save)
+                file = new_data[upload_field_name]
+
+            if not file:
+                return
+
+            # Backwards-compatible support for files-as-dictionaries.
+            # We don't need to raise a warning because Model._save_FIELD_file will
+            # do so for us.
+            try:
+                file_name = file.name
+            except AttributeError:
+                file_name = file['filename']
+
+            func = getattr(new_object, 'save_%s_file' % self.name)
+            func(file_name, file, save)
 
     def get_directory_name(self):
         return os.path.normpath(force_unicode(datetime.datetime.now().strftime(smart_str(self.upload_to))))
@@ -842,9 +867,9 @@ class FileField(Field):
         return os.path.normpath(f)
 
     def save_form_data(self, instance, data):
-        from django.newforms.fields import UploadedFile
+        from django.core.files.uploadedfile import UploadedFile
         if data and isinstance(data, UploadedFile):
-            getattr(instance, "save_%s_file" % self.name)(data.filename, data.content, save=False)
+            getattr(instance, "save_%s_file" % self.name)(data.name, data, save=False)
 
     def formfield(self, **kwargs):
         defaults = {'form_class': forms.FileField}
@@ -883,6 +908,11 @@ class FilePathField(Field):
 class FloatField(Field):
     empty_strings_allowed = False
 
+    def get_db_prep_value(self, value):
+        if value is None:
+            return None
+        return float(value)
+
     def get_manipulator_field_objs(self):
         return [oldforms.FloatField]
 
@@ -911,9 +941,6 @@ class ImageField(FileField):
         if not self.height_field:
             setattr(cls, 'get_%s_height' % self.name, curry(cls._get_FIELD_height, field=self))
 
-    def get_internal_type(self):
-        return "ImageField"
-
     def save_file(self, new_data, new_object, original_object, change, rel, save=True):
         FileField.save_file(self, new_data, new_object, original_object, change, rel, save)
         # If the image has height and/or width field(s) and they haven't
@@ -933,6 +960,11 @@ class ImageField(FileField):
 
 class IntegerField(Field):
     empty_strings_allowed = False
+    def get_db_prep_value(self, value):
+        if value is None:
+            return None
+        return int(value)
+
     def get_manipulator_field_objs(self):
         return [oldforms.IntegerField]
 
@@ -980,15 +1012,24 @@ class NullBooleanField(Field):
         if value in ('f', 'False', '0'): return False
         raise validators.ValidationError, _("This value must be either None, True or False.")
 
+    def get_db_prep_value(self, value):
+        if value is None:
+            return None
+        return bool(value)
+
     def get_manipulator_field_objs(self):
         return [oldforms.NullBooleanField]
 
     def formfield(self, **kwargs):
-        defaults = {'form_class': forms.NullBooleanField}
+        defaults = {
+            'form_class': forms.NullBooleanField,
+            'required': not self.blank,
+            'label': capfirst(self.verbose_name),
+            'help_text': self.help_text}
         defaults.update(kwargs)
         return super(NullBooleanField, self).formfield(**defaults)
 
-class PhoneNumberField(IntegerField):
+class PhoneNumberField(Field):
     def get_manipulator_field_objs(self):
         return [oldforms.PhoneNumberField]
 
@@ -1070,20 +1111,34 @@ class TimeField(Field):
     def get_internal_type(self):
         return "TimeField"
 
-    def get_db_prep_lookup(self, lookup_type, value):
-        if connection.features.time_field_needs_date:
-            # Oracle requires a date in order to parse.
-            def prep(value):
-                if isinstance(value, datetime.time):
-                    value = datetime.datetime.combine(datetime.date(1900, 1, 1), value)
-                return smart_unicode(value)
+    def to_python(self, value):
+        if value is None:
+            return None
+        if isinstance(value, datetime.time):
+            return value
+
+        # Attempt to parse a datetime:
+        value = smart_str(value)
+        # split usecs, because they are not recognized by strptime.
+        if '.' in value:
+            try:
+                value, usecs = value.split('.')
+                usecs = int(usecs)
+            except ValueError:
+                raise validators.ValidationError, _('Enter a valid time in HH:MM[:ss[.uuuuuu]] format.')
         else:
-            prep = smart_unicode
-        if lookup_type == 'range':
-            value = [prep(v) for v in value]
-        else:
-            value = prep(value)
-        return Field.get_db_prep_lookup(self, lookup_type, value)
+            usecs = 0
+        kwargs = {'microsecond': usecs}
+
+        try: # Seconds are optional, so try converting seconds first.
+            return datetime.time(*time.strptime(value, '%H:%M:%S')[3:6],
+                                 **kwargs)
+        except ValueError:
+            try: # Try without seconds.
+                return datetime.time(*time.strptime(value, '%H:%M')[3:5],
+                                         **kwargs)
+            except ValueError:
+                raise validators.ValidationError, _('Enter a valid time in HH:MM[:ss[.uuuuuu]] format.')
 
     def pre_save(self, model_instance, add):
         if self.auto_now or (self.auto_now_add and add):
@@ -1093,23 +1148,9 @@ class TimeField(Field):
         else:
             return super(TimeField, self).pre_save(model_instance, add)
 
-    def get_db_prep_save(self, value):
-        # Casts dates into string format for entry into database.
-        if value is not None:
-            # MySQL will throw a warning if microseconds are given, because it
-            # doesn't support microseconds.
-            if not connection.features.supports_usecs and hasattr(value, 'microsecond'):
-                value = value.replace(microsecond=0)
-            if connection.features.time_field_needs_date:
-                # cx_Oracle expects a datetime.datetime to persist into TIMESTAMP field.
-                if isinstance(value, datetime.time):
-                    value = datetime.datetime(1900, 1, 1, value.hour, value.minute,
-                                              value.second, value.microsecond)
-                elif isinstance(value, basestring):
-                    value = datetime.datetime(*(time.strptime(value, '%H:%M:%S')[:6]))
-            else:
-                value = smart_unicode(value)
-        return Field.get_db_prep_save(self, value)
+    def get_db_prep_value(self, value):
+        # Casts times into the format expected by the backend
+        return connection.ops.value_to_db_time(self.to_python(value))
 
     def get_manipulator_field_objs(self):
         return [oldforms.TimeField]
@@ -1160,12 +1201,3 @@ class XMLField(TextField):
     def get_manipulator_field_objs(self):
         return [curry(oldforms.XMLLargeTextField, schema_path=self.schema_path)]
 
-class OrderingField(IntegerField):
-    empty_strings_allowed=False
-    def __init__(self, with_respect_to, **kwargs):
-        self.wrt = with_respect_to
-        kwargs['null'] = True
-        IntegerField.__init__(self, **kwargs )
-
-    def get_manipulator_fields(self, opts, manipulator, change, name_prefix='', rel=False, follow=True):
-        return [oldforms.HiddenField(name_prefix + self.name)]

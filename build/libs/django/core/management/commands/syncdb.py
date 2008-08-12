@@ -25,6 +25,7 @@ class Command(NoArgsCommand):
 
         verbosity = int(options.get('verbosity', 1))
         interactive = options.get('interactive')
+        show_traceback = options.get('traceback', False)
 
         self.style = no_style()
 
@@ -40,10 +41,11 @@ class Command(NoArgsCommand):
                 # but raises an ImportError for some reason. The only way we
                 # can do this is to check the text of the exception. Note that
                 # we're a bit broad in how we check the text, because different
-                # Python implementations may not use the same text. CPython
-                # uses the text "No module named management".
+                # Python implementations may not use the same text. 
+                # CPython uses the text "No module named management"
+                # PyPy uses "No module named myproject.myapp.management"
                 msg = exc.args[0]
-                if not msg.startswith('No module named management') or 'management' not in msg:
+                if not msg.startswith('No module named') or 'management' not in msg:
                     raise
 
         cursor = connection.cursor()
@@ -104,14 +106,17 @@ class Command(NoArgsCommand):
         # Send the post_syncdb signal, so individual apps can do whatever they need
         # to do at this point.
         emit_post_sync_signal(created_models, verbosity, interactive)
-
+        
+        # The connection may have been closed by a syncdb handler.
+        cursor = connection.cursor()
+        
         # Install custom SQL for the app (but only if this
         # is a model we've just created)
         for app in models.get_apps():
             app_name = app.__name__.split('.')[-2]
             for model in models.get_models(app):
                 if model in created_models:
-                    custom_sql = custom_sql_for_model(model)
+                    custom_sql = custom_sql_for_model(model, self.style)
                     if custom_sql:
                         if verbosity >= 1:
                             print "Installing custom SQL for %s.%s model" % (app_name, model._meta.object_name)
@@ -119,12 +124,17 @@ class Command(NoArgsCommand):
                             for sql in custom_sql:
                                 cursor.execute(sql)
                         except Exception, e:
-                            sys.stderr.write("Failed to install custom SQL for %s.%s model: %s" % \
+                            sys.stderr.write("Failed to install custom SQL for %s.%s model: %s\n" % \
                                                 (app_name, model._meta.object_name, e))
+                            if show_traceback:
+                                import traceback
+                                traceback.print_exc()
                             transaction.rollback_unless_managed()
                         else:
                             transaction.commit_unless_managed()
-
+                    else:
+                        if verbosity >= 2:
+                            print "No custom SQL for %s.%s model" % (app_name, model._meta.object_name)
         # Install SQL indicies for all newly created models
         for app in models.get_apps():
             app_name = app.__name__.split('.')[-2]
@@ -138,7 +148,7 @@ class Command(NoArgsCommand):
                             for sql in index_sql:
                                 cursor.execute(sql)
                         except Exception, e:
-                            sys.stderr.write("Failed to install index for %s.%s model: %s" % \
+                            sys.stderr.write("Failed to install index for %s.%s model: %s\n" % \
                                                 (app_name, model._meta.object_name, e))
                             transaction.rollback_unless_managed()
                         else:

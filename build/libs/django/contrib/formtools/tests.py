@@ -1,7 +1,6 @@
-from django import newforms as forms
+from django import forms
 from django.contrib.formtools import preview
 from django import http
-from django.conf import settings
 from django.test import TestCase
 
 success_string = "Done was called!"
@@ -21,9 +20,9 @@ class TestForm(forms.Form):
 
 
 class PreviewTests(TestCase):
+    urls = 'django.contrib.formtools.test_urls'
 
     def setUp(self):
-        settings.ROOT_URLCONF = 'django.contrib.formtools.test_urls'
         # Create a FormPreview instance to share between tests
         self.preview = preview.FormPreview(TestForm)
         input_template = '<input type="hidden" name="%s" value="%s" />'

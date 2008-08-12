@@ -11,7 +11,6 @@ from django.db.models.fields.related import ManyToManyRel
 from django.db.models.fields import AutoField, FieldDoesNotExist
 from django.db.models.fields.proxy import OrderWrt
 from django.db.models.loading import get_models, app_cache_ready
-from django.db.models import Manager
 from django.utils.translation import activate, deactivate_all, get_language, string_concat
 from django.utils.encoding import force_unicode, smart_str
 from django.utils.datastructures import SortedDict
@@ -25,7 +24,7 @@ DEFAULT_NAMES = ('verbose_name', 'db_table', 'ordering',
                  'abstract')
 
 class Options(object):
-    def __init__(self, meta):
+    def __init__(self, meta, app_label=None):
         self.local_fields, self.local_many_to_many = [], []
         self.module_name, self.verbose_name = None, None
         self.verbose_name_plural = None
@@ -33,7 +32,7 @@ class Options(object):
         self.ordering = []
         self.unique_together =  []
         self.permissions =  []
-        self.object_name, self.app_label = None, None
+        self.object_name, self.app_label = None, app_label
         self.get_latest_by = None
         self.order_with_respect_to = None
         self.db_tablespace = settings.DEFAULT_TABLESPACE
@@ -44,8 +43,12 @@ class Options(object):
         self.one_to_one_field = None
         self.abstract = False
         self.parents = SortedDict()
+        self.duplicate_targets = {}
 
     def contribute_to_class(self, cls, name):
+        from django.db import connection
+        from django.db.backends.util import truncate_name
+
         cls._meta = self
         self.installed = re.sub('\.models$', '', cls.__module__) in settings.INSTALLED_APPS
         # First, construct the default values for these options.
@@ -87,9 +90,13 @@ class Options(object):
             self.verbose_name_plural = string_concat(self.verbose_name, 's')
         del self.meta
 
+        # If the db_table wasn't provided, use the app_label + module_name.
+        if not self.db_table:
+            self.db_table = "%s_%s" % (self.app_label, self.module_name)
+            self.db_table = truncate_name(self.db_table, connection.ops.max_name_length())
+
+
     def _prepare(self, model):
-        from django.db import connection
-        from django.db.backends.util import truncate_name
         if self.order_with_respect_to:
             self.order_with_respect_to = self.get_field(self.order_with_respect_to)
             self.ordering = ('_order',)
@@ -108,10 +115,23 @@ class Options(object):
                         auto_created=True)
                 model.add_to_class('id', auto)
 
-        # If the db_table wasn't provided, use the app_label + module_name.
-        if not self.db_table:
-            self.db_table = "%s_%s" % (self.app_label, self.module_name)
-            self.db_table = truncate_name(self.db_table, connection.ops.max_name_length())
+        # Determine any sets of fields that are pointing to the same targets
+        # (e.g. two ForeignKeys to the same remote model). The query
+        # construction code needs to know this. At the end of this,
+        # self.duplicate_targets will map each duplicate field column to the
+        # columns it duplicates.
+        collections = {}
+        for column, target in self.duplicate_targets.iteritems():
+            try:
+                collections[target].add(column)
+            except KeyError:
+                collections[target] = set([column])
+        self.duplicate_targets = {}
+        for elt in collections.itervalues():
+            if len(elt) == 1:
+                continue
+            for column in elt:
+                self.duplicate_targets[column] = elt.difference(set([column]))
 
     def add_field(self, field):
         # Insert the given field in the order in which it was created, using
@@ -274,14 +294,17 @@ class Options(object):
         """
         Initialises the field name -> field object mapping.
         """
-        cache = dict([(f.name, (f, m, True, False)) for f, m in
-                self.get_fields_with_model()])
-        for f, model in self.get_m2m_with_model():
-            cache[f.name] = (f, model, True, True)
+        cache = {}
+        # We intentionally handle related m2m objects first so that symmetrical
+        # m2m accessor names can be overridden, if necessary.
         for f, model in self.get_all_related_m2m_objects_with_model():
             cache[f.field.related_query_name()] = (f, model, False, True)
         for f, model in self.get_all_related_objects_with_model():
             cache[f.field.related_query_name()] = (f, model, False, False)
+        for f, model in self.get_m2m_with_model():
+            cache[f.name] = (f, model, True, True)
+        for f, model in self.get_fields_with_model():
+            cache[f.name] = (f, model, True, False)
         if self.order_with_respect_to:
             cache['_order'] = OrderWrt(), None, True, False
         if app_cache_ready():
@@ -461,77 +484,3 @@ class Options(object):
             else:
                 self._field_types[field_type] = False
         return self._field_types[field_type]
-
-class AdminOptions(object):
-    def __init__(self, fields=None, js=None, list_display=None, list_display_links=None, list_filter=None,
-        date_hierarchy=None, save_as=False, ordering=None, search_fields=None,
-        save_on_top=False, list_select_related=False, manager=None, list_per_page=100):
-        self.fields = fields
-        self.js = js or []
-        self.list_display = list_display or ['__str__']
-        self.list_display_links = list_display_links or []
-        self.list_filter = list_filter or []
-        self.date_hierarchy = date_hierarchy
-        self.save_as, self.ordering = save_as, ordering
-        self.search_fields = search_fields or []
-        self.save_on_top = save_on_top
-        self.list_select_related = list_select_related
-        self.list_per_page = list_per_page
-        self.manager = manager or Manager()
-
-    def get_field_sets(self, opts):
-        "Returns a list of AdminFieldSet objects for this AdminOptions object."
-        if self.fields is None:
-            field_struct = ((None, {'fields': [f.name for f in opts.fields + opts.many_to_many if f.editable and not isinstance(f, AutoField)]}),)
-        else:
-            field_struct = self.fields
-        new_fieldset_list = []
-        for fieldset in field_struct:
-            fs_options = fieldset[1]
-            classes = fs_options.get('classes', ())
-            description = fs_options.get('description', '')
-            new_fieldset_list.append(AdminFieldSet(fieldset[0], classes,
-                opts.get_field, fs_options['fields'], description))
-        return new_fieldset_list
-
-    def contribute_to_class(self, cls, name):
-        cls._meta.admin = self
-        # Make sure the admin manager has access to the model
-        self.manager.model = cls
-
-class AdminFieldSet(object):
-    def __init__(self, name, classes, field_locator_func, line_specs, description):
-        self.name = name
-        self.field_lines = [AdminFieldLine(field_locator_func, line_spec) for line_spec in line_specs]
-        self.classes = classes
-        self.description = description
-
-    def __repr__(self):
-        return "FieldSet: (%s, %s)" % (self.name, self.field_lines)
-
-    def bind(self, field_mapping, original, bound_field_set_class):
-        return bound_field_set_class(self, field_mapping, original)
-
-    def __iter__(self):
-        for field_line in self.field_lines:
-            yield field_line
-
-    def __len__(self):
-        return len(self.field_lines)
-
-class AdminFieldLine(object):
-    def __init__(self, field_locator_func, linespec):
-        if isinstance(linespec, basestring):
-            self.fields = [field_locator_func(linespec)]
-        else:
-            self.fields = [field_locator_func(field_name) for field_name in linespec]
-
-    def bind(self, field_mapping, original, bound_field_line_class):
-        return bound_field_line_class(self, field_mapping, original)
-
-    def __iter__(self):
-        for field in self.fields:
-            yield field
-
-    def __len__(self):
-        return len(self.fields)

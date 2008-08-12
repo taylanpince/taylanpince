@@ -5,10 +5,11 @@ Requires cx_Oracle: http://www.python.net/crew/atuining/cx_Oracle/
 """
 
 import os
+import datetime
+import time
 
 from django.db.backends import BaseDatabaseWrapper, BaseDatabaseFeatures, BaseDatabaseOperations, util
 from django.db.backends.oracle import query
-from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_str, force_unicode
 
 # Oracle takes client-side character set encoding from the environment.
@@ -24,16 +25,12 @@ IntegrityError = Database.IntegrityError
 
 class DatabaseFeatures(BaseDatabaseFeatures):
     allows_group_by_ordinal = False
-    allows_unique_and_pk = False        # Suppress UNIQUE/PK for Oracle (ORA-02259)
     empty_fetchmany_value = ()
     needs_datetime_string_cast = False
-    needs_upper_for_iops = True
     supports_tablespaces = True
     uses_case_insensitive_names = True
     uses_custom_query_class = True
-    time_field_needs_date = True
     interprets_empty_strings_as_nulls = True
-    date_field_supports_time_value = False
 
 class DatabaseOperations(BaseDatabaseOperations):
     def autoinc_sql(self, table, column):
@@ -89,11 +86,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         cursor.execute('SELECT %s_sq.currval FROM dual' % sq_name)
         return cursor.fetchone()[0]
 
-    def limit_offset_sql(self, limit, offset=None):
-        # Limits and offset are too complicated to be handled here.
-        # Instead, they are handled in django/db/backends/oracle/query.py.
-        return ""
-
     def lookup_cast(self, lookup_type):
         if lookup_type in ('iexact', 'icontains', 'istartswith', 'iendswith'):
             return "UPPER(%s)"
@@ -148,11 +140,11 @@ class DatabaseOperations(BaseDatabaseOperations):
             # Since we've just deleted all the rows, running our sequence
             # ALTER code will reset the sequence to 0.
             for sequence_info in sequences:
-                table_name = sequence_info['table']
-                seq_name = get_sequence_name(table_name)
+                sequence_name = get_sequence_name(sequence_info['table'])
+                table_name = self.quote_name(sequence_info['table'])
                 column_name = self.quote_name(sequence_info['column'] or 'id')
-                query = _get_sequence_reset_sql() % {'sequence': seq_name,
-                                                     'table': self.quote_name(table_name),
+                query = _get_sequence_reset_sql() % {'sequence': sequence_name,
+                                                     'table': table_name,
                                                      'column': column_name}
                 sql.append(query)
             return sql
@@ -164,19 +156,22 @@ class DatabaseOperations(BaseDatabaseOperations):
         output = []
         query = _get_sequence_reset_sql()
         for model in model_list:
-            for f in model._meta.fields:
+            for f in model._meta.local_fields:
                 if isinstance(f, models.AutoField):
+                    table_name = self.quote_name(model._meta.db_table)
                     sequence_name = get_sequence_name(model._meta.db_table)
-                    column_name = self.quote_name(f.db_column or f.name)
+                    column_name = self.quote_name(f.column)
                     output.append(query % {'sequence': sequence_name,
-                                           'table': model._meta.db_table,
+                                           'table': table_name,
                                            'column': column_name})
                     break # Only one AutoField is allowed per model, so don't bother continuing.
             for f in model._meta.many_to_many:
+                table_name = self.quote_name(f.m2m_db_table())
                 sequence_name = get_sequence_name(f.m2m_db_table())
+                column_name = self.quote_name('id')
                 output.append(query % {'sequence': sequence_name,
-                                       'table': f.m2m_db_table(),
-                                       'column': self.quote_name('id')})
+                                       'table': table_name,
+                                       'column': column_name})
         return output
 
     def start_transaction_sql(self):
@@ -184,6 +179,21 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def tablespace_sql(self, tablespace, inline=False):
         return "%sTABLESPACE %s" % ((inline and "USING INDEX " or ""), self.quote_name(tablespace))
+
+    def value_to_db_time(self, value):
+        if value is None:
+            return None
+        if isinstance(value, basestring):
+            return datetime.datetime(*(time.strptime(value, '%H:%M:%S')[:6]))
+        return datetime.datetime(1900, 1, 1, value.hour, value.minute,
+                                 value.second, value.microsecond)
+
+    def year_lookup_bounds_for_date_field(self, value):
+        first = '%s-01-01'
+        second = '%s-12-31'
+        return [first % value, second % value]
+
+
 
 class DatabaseWrapper(BaseDatabaseWrapper):
     features = DatabaseFeatures()
@@ -247,6 +257,26 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cursor.arraysize = 100
         return cursor
 
+class OracleParam(object):
+    """
+    Wrapper object for formatting parameters for Oracle. If the string
+    representation of the value is large enough (greater than 4000 characters)
+    the input size needs to be set as NCLOB. Alternatively, if the parameter has
+    an `input_size` attribute, then the value of the `input_size` attribute will
+    be used instead. Otherwise, no input size will be set for the parameter when
+    executing the query.
+    """
+    def __init__(self, param, charset, strings_only=False):
+        self.smart_str = smart_str(param, charset, strings_only)
+        if hasattr(param, 'input_size'):
+            # If parameter has `input_size` attribute, use that.
+            self.input_size = param.input_size
+        elif isinstance(param, basestring) and len(param) > 4000:
+            # Mark any string parameter greater than 4000 characters as an NCLOB.
+            self.input_size = Database.NCLOB
+        else:
+            self.input_size = None
+
 class FormatStylePlaceholderCursor(Database.Cursor):
     """
     Django uses "format" (e.g. '%s') style placeholders, but Oracle uses ":var"
@@ -261,15 +291,13 @@ class FormatStylePlaceholderCursor(Database.Cursor):
     def _format_params(self, params):
         if isinstance(params, dict):
             result = {}
-            charset = self.charset
             for key, value in params.items():
-                result[smart_str(key, charset)] = smart_str(value, charset)
+                result[smart_str(key, self.charset)] = OracleParam(param, self.charset)
             return result
         else:
-            return tuple([smart_str(p, self.charset, True) for p in params])
+            return tuple([OracleParam(p, self.charset, True) for p in params])
 
     def _guess_input_sizes(self, params_list):
-        # Mark any string parameter greater than 4000 characters as an NCLOB.
         if isinstance(params_list[0], dict):
             sizes = {}
             iterators = [params.iteritems() for params in params_list]
@@ -278,12 +306,17 @@ class FormatStylePlaceholderCursor(Database.Cursor):
             iterators = [enumerate(params) for params in params_list]
         for iterator in iterators:
             for key, value in iterator:
-                if isinstance(value, basestring) and len(value) > 4000:
-                    sizes[key] = Database.NCLOB
+                if value.input_size: sizes[key] = value.input_size
         if isinstance(sizes, dict):
             self.setinputsizes(**sizes)
         else:
             self.setinputsizes(*sizes)
+
+    def _param_generator(self, params):
+        if isinstance(params, dict):
+            return dict([(k, p.smart_str) for k, p in params.iteritems()])
+        else:
+            return [p.smart_str for p in params]
 
     def execute(self, query, params=None):
         if params is None:
@@ -299,7 +332,7 @@ class FormatStylePlaceholderCursor(Database.Cursor):
             query = query[:-1]
         query = smart_str(query, self.charset) % tuple(args)
         self._guess_input_sizes([params])
-        return Database.Cursor.execute(self, query, params)
+        return Database.Cursor.execute(self, query, self._param_generator(params))
 
     def executemany(self, query, params=None):
         try:
@@ -314,9 +347,9 @@ class FormatStylePlaceholderCursor(Database.Cursor):
         if query.endswith(';') or query.endswith('/'):
             query = query[:-1]
         query = smart_str(query, self.charset) % tuple(args)
-        new_param_list = [self._format_params(i) for i in params]
-        self._guess_input_sizes(new_param_list)
-        return Database.Cursor.executemany(self, query, new_param_list)
+        formatted = [self._format_params(i) for i in params]
+        self._guess_input_sizes(formatted)
+        return Database.Cursor.executemany(self, query, [self._param_generator(p) for p in formatted])
 
     def fetchone(self):
         row = Database.Cursor.fetchone(self)

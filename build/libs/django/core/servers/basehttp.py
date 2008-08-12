@@ -17,7 +17,7 @@ import urllib
 from django.utils.http import http_date
 
 __version__ = "0.1"
-__all__ = ['WSGIServer','WSGIRequestHandler','demo_app']
+__all__ = ['WSGIServer','WSGIRequestHandler']
 
 server_version = "WSGIServer/" + __version__
 sys_version = "Python/" + sys.version.split()[0]
@@ -551,6 +551,9 @@ class WSGIRequestHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         from django.conf import settings
         self.admin_media_prefix = settings.ADMIN_MEDIA_PREFIX
+        # We set self.path to avoid crashes in log_message() on unsupported
+        # requests (like "OPTIONS").
+        self.path = ''
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     def get_environ(self):

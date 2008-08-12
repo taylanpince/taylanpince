@@ -39,12 +39,11 @@ class CommentNode(Node):
 
 class CycleNode(Node):
     def __init__(self, cyclevars, variable_name=None):
-        self.cycle_iter = itertools_cycle(cyclevars)
+        self.cycle_iter = itertools_cycle([Variable(v) for v in cyclevars])
         self.variable_name = variable_name
 
     def render(self, context):
-        value = self.cycle_iter.next()
-        value = Variable(value).resolve(context)
+        value = self.cycle_iter.next().resolve(context)
         if self.variable_name:
             context[self.variable_name] = value
         return value
@@ -158,34 +157,37 @@ class ForNode(Node):
         return nodelist.render(context)
 
 class IfChangedNode(Node):
-    def __init__(self, nodelist, *varlist):
-        self.nodelist = nodelist
+    def __init__(self, nodelist_true, nodelist_false, *varlist):
+        self.nodelist_true, self.nodelist_false = nodelist_true, nodelist_false
         self._last_seen = None
         self._varlist = map(Variable, varlist)
+        self._id = str(id(self))
 
     def render(self, context):
-        if 'forloop' in context and context['forloop']['first']:
+        if 'forloop' in context and self._id not in context['forloop']:
             self._last_seen = None
+            context['forloop'][self._id] = 1
         try:
             if self._varlist:
                 # Consider multiple parameters.  This automatically behaves
                 # like an OR evaluation of the multiple variables.
                 compare_to = [var.resolve(context) for var in self._varlist]
             else:
-                compare_to = self.nodelist.render(context)
+                compare_to = self.nodelist_true.render(context)
         except VariableDoesNotExist:
             compare_to = None
 
-        if  compare_to != self._last_seen:
+        if compare_to != self._last_seen:
             firstloop = (self._last_seen == None)
             self._last_seen = compare_to
             context.push()
             context['ifchanged'] = {'firstloop': firstloop}
-            content = self.nodelist.render(context)
+            content = self.nodelist_true.render(context)
             context.pop()
             return content
-        else:
-            return ''
+        elif self.nodelist_false:
+            return self.nodelist_false.render(context)
+        return ''
 
 class IfEqualNode(Node):
     def __init__(self, var1, var2, nodelist_true, nodelist_false, negate):
@@ -452,17 +454,17 @@ def cycle(parser, token):
             <tr class="{% cycle rowcolors %}">...</tr>
             <tr class="{% cycle rowcolors %}">...</tr>
 
-    You can use any number of values, seperated by spaces. Commas can also
+    You can use any number of values, separated by spaces. Commas can also
     be used to separate values; if a comma is used, the cycle values are
     interpreted as literal strings.
     """
 
     # Note: This returns the exact same node on each {% cycle name %} call;
     # that is, the node object returned from {% cycle a b c as name %} and the
-    # one returned from {% cycle name %} are the exact same object.  This
+    # one returned from {% cycle name %} are the exact same object. This
     # shouldn't cause problems (heh), but if it does, now you know.
     #
-    # Ugly hack warning: this stuffs the named template dict into parser so
+    # Ugly hack warning: This stuffs the named template dict into parser so
     # that names are only unique within each template (as opposed to using
     # a global variable, which would make cycle names have to be unique across
     # *all* templates.
@@ -481,8 +483,7 @@ def cycle(parser, token):
         # {% cycle foo %} case.
         name = args[1]
         if not hasattr(parser, '_namedCycleNodes'):
-            raise TemplateSyntaxError("No named cycles in template."
-                                      " '%s' is not defined" % name)
+            raise TemplateSyntaxError("No named cycles in template. '%s' is not defined" % name)
         if not name in parser._namedCycleNodes:
             raise TemplateSyntaxError("Named cycle '%s' does not exist" % name)
         return parser._namedCycleNodes[name]
@@ -682,8 +683,10 @@ ifnotequal = register.tag(ifnotequal)
 def do_if(parser, token):
     """
     The ``{% if %}`` tag evaluates a variable, and if that variable is "true"
-    (i.e. exists, is not empty, and is not a false boolean value) the contents
-    of the block are output::
+    (i.e., exists, is not empty, and is not a false boolean value), the
+    contents of the block are output:
+
+    ::
 
         {% if athlete_list %}
             Number of athletes: {{ athlete_list|count }}
@@ -801,9 +804,14 @@ def ifchanged(parser, token):
             {% endfor %}
     """
     bits = token.contents.split()
-    nodelist = parser.parse(('endifchanged',))
-    parser.delete_first_token()
-    return IfChangedNode(nodelist, *bits[1:])
+    nodelist_true = parser.parse(('else', 'endifchanged'))
+    token = parser.next_token()
+    if token.contents == 'else':
+        nodelist_false = parser.parse(('endifchanged',))
+        parser.delete_first_token()
+    else:
+        nodelist_false = NodeList()
+    return IfChangedNode(nodelist_true, nodelist_false, *bits[1:])
 ifchanged = register.tag(ifchanged)
 
 #@register.tag

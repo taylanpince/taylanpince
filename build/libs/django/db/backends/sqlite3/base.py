@@ -40,6 +40,11 @@ Database.register_adapter(decimal.Decimal, util.rev_typecast_decimal)
 
 class DatabaseFeatures(BaseDatabaseFeatures):
     supports_constraints = False
+    # SQLite cannot handle us only partially reading from a cursor's result set
+    # and then writing the same rows to the database in another cursor. This
+    # setting ensures we always read result sets fully into memory all in one
+    # go.
+    can_use_chunked_reads = False
 
 class DatabaseOperations(BaseDatabaseOperations):
     def date_extract_sql(self, lookup_type, field_name):
@@ -79,6 +84,12 @@ class DatabaseOperations(BaseDatabaseOperations):
         # sql_flush() implementations). Just return SQL at this point
         return sql
 
+    def year_lookup_bounds(self, value):
+        first = '%s-01-01'
+        second = '%s-12-31 23:59:59.999999'
+        return [first % value, second % value]
+
+
 class DatabaseWrapper(BaseDatabaseWrapper):
     features = DatabaseFeatures()
     ops = DatabaseOperations()
@@ -105,6 +116,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def _cursor(self, settings):
         if self.connection is None:
+            if not settings.DATABASE_NAME:
+                from django.core.exceptions import ImproperlyConfigured
+                raise ImproperlyConfigured, "Please fill out DATABASE_NAME in the settings module before using the database."
             kwargs = {
                 'database': settings.DATABASE_NAME,
                 'detect_types': Database.PARSE_DECLTYPES | Database.PARSE_COLNAMES,
@@ -151,7 +165,7 @@ def _sqlite_extract(lookup_type, dt):
         dt = util.typecast_timestamp(dt)
     except (ValueError, TypeError):
         return None
-    return str(getattr(dt, lookup_type))
+    return getattr(dt, lookup_type)
 
 def _sqlite_date_trunc(lookup_type, dt):
     try:

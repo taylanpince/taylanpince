@@ -1,0 +1,546 @@
+/*
+ *	Title: Screen CSS Styles for taylanpince.com
+ *	Date: June 19, 2008
+ *  Author: Taylan Pince (taylanpince@gmail.com)
+ */
+
+
+/* @group Global */
+
+body {
+    font: 13px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
+    background: #32331d url("../images/bg-header.png") top left repeat-x;
+    color: #333;
+    line-height: 20px;
+    opacity: 0.999999;
+}
+
+/* @end */
+
+
+/* @group Headers */
+
+h1 {
+    font: 50px Georgia, "Times New Roman", Times, serif;
+    color: #787746;
+    padding: 0px 0px 12px 0px;
+    border-bottom: 1px solid #787746;
+    margin: 0px 0px 25px 0px;
+}
+
+h2 {
+    font: 20px Georgia, "Times New Roman", Times, serif;
+    color: #161616;
+    line-height: 30px;
+    margin: 0px 0px 12px 0px;
+}
+
+h3 {
+    font: 20px Georgia, "Times New Roman", Times, serif;
+    color: #787746;
+    margin: 0px 0px 10px 0px;
+}
+
+h4 {
+    font: 18px Georgia, "Times New Roman", Times, serif;
+    color: #32331d;
+    margin: 0px 0px 6px 0px;
+}
+
+h5 {
+    font: 13px Georgia, "Times New Roman", Times, serif;
+    font-weight: bold;
+    color: #161616;
+    margin: 0px 0px 6px 0px;
+}
+
+/* @end */
+
+
+/* @group Text */
+
+p {
+	margin: 0px 0px 20px 0px;
+}
+
+blockquote {
+    font: 16px Georgia, "Times New Roman", Times, serif;
+    font-style: italic;
+    line-height: 24px;
+    border-left: 3px solid #787746;
+    padding: 0px 0px 0px 20px;
+	margin: 0px 0px 20px 0px;
+	color: #787746;
+}
+
+q {
+	
+}
+
+pre {
+	overflow: hidden;
+	padding: 10px 0px 10px 20px;
+	margin: 0px 0px 20px 0px;
+	background-color: #b4af91;
+	border: 1px dashed #32331d;
+}
+
+code {
+	font: 12px "Bitstream Vera Sans Mono", "Andale Mono", Monaco, monospace;
+	color: #161616;
+}
+
+p code {
+    font-size: 13px;
+}
+
+hr {
+	margin: 0px 0px 20px 0px;
+	border-top: 1px solid #787746;
+}
+
+div.hr {
+    margin: 0px 0px 20px 0px;
+    padding: 30px 0px 0px 0px;
+    background: transparent url("../images/bg-hr.png") 50% 50% no-repeat;
+}
+
+div.hr hr {
+    display: none;
+}
+
+span.et,
+span.arrow {
+    font-family: Baskerville, "Goudy Old Style", "Palatino", "Book Antiqua", serif;
+    font-style: italic;
+}
+
+#Header span.et,
+#Header span.arrow {
+    color: #787746;
+}
+
+span.arrow {
+    font-style: normal;
+}
+
+span.number {
+    font: 13px Georgia, "Times New Roman", Times, serif;
+}
+
+/* @end */
+
+
+/* @group Links */
+
+a,
+a:link,
+a:active,
+a:visited {
+    color: #c03000;
+	text-decoration: none;
+	border-bottom: 1px solid #c03000;
+	padding: 0px 0px 2px 0px;
+}
+
+a:hover {
+    background-color: #b4af91;
+	border: none;
+}
+
+a.no-border {
+    border: none;
+}
+
+/* @end */
+
+
+/* @group Lists */
+
+ul,
+ol {
+    margin: 0px 0px 20px 0px;
+}
+
+li {
+	margin: 0px 0px 10px 30px;
+}
+
+ol li {
+    list-style-type: decimal;
+}
+
+ul li {
+    list-style-type: square;
+}
+
+/* @end */
+
+
+/* @group Forms */
+
+form {
+	
+}
+
+label {
+	
+}
+
+input.text,
+select,
+textarea {
+    font-size: 14px;
+	border: 4px solid #b4af91;
+	background-color: #d0cdb8;
+	padding: 4px;
+	margin: 0px;
+}
+
+input:focus,
+textarea:focus {
+    background-color: #FFF;
+}
+
+input.submit,
+input.button {
+    border: 2px solid #6d1b00;
+    margin: 0px 10px 0px 0px;
+    padding: 0px 6px 2px 6px;
+    background-color: #c03000;
+    color: #FFF;
+    font-size: 13px;
+}
+
+form li {
+    overflow: hidden;
+    position: static;
+    width: 870px;
+    margin: 0px 0px 10px 0px;
+    list-style-type: none;
+}
+
+form li label {
+    float: left;
+    display: inline;
+    width: 100px;
+    margin: 0px 10px 0px 0px;
+    font-weight: bold;
+}
+
+form li input.text,
+form li select,
+form li textarea {
+    float: left;
+    display: inline;
+}
+
+form li input.text,
+form li textarea {
+    width: 400px;
+}
+
+form li textarea {
+    height: 200px;
+}
+
+form li p.help {
+    clear: both;
+    padding: 4px 0px 0px 110px;
+    margin: 0px;
+    font-size: 11px;
+}
+
+form li.padded {
+    padding: 0px 0px 0px 110px;
+}
+
+/* @end */
+
+
+/* @group Header */
+
+#Header {
+    padding: 20px 0px 12px 25px;
+    font: 16px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
+    color: #8f8f8f;
+    text-shadow: 0 0 0 #000;
+}
+
+#HeaderWrapper {
+    width: 880px;
+}
+
+#HeaderLogo,
+#HeaderLogo:hover {
+    float: right;
+    display: inline;
+    border: none;
+    padding: 0px;
+    background-color: transparent;
+}
+
+#Header strong {
+    font: 36px Georgia, "Times New Roman", Times, serif;
+    color: #b4af91;
+    margin: 0px 10px 0px 0px;
+}
+
+#Header strong a {
+    color: #787746;
+    border: none;
+}
+
+#Header strong a:hover {
+    color: #b4af91;
+    background-color: transparent;
+}
+
+#HeaderHome {
+    display: none;
+}
+
+/* @end */
+
+
+/* @group Navigation */
+
+#Navigation {
+    overflow: hidden;
+    position: static;
+    width: 680px;
+    height: 100px;
+    margin: 0px 0px 0px 0px;
+    padding: 0px 0px 0px 0px;
+}
+
+#Navigation li {
+    float: left;
+    display: inline;
+    width: 120px;
+    margin: 41px 40px 0px 0px;
+}
+
+#Navigation li a {
+    display: block;
+    height: 51px;
+    padding: 10px 5px 10px 5px;
+    font: 12px Georgia, "Times New Roman", Times, serif;
+    font-style: italic;
+    color: #FFF;
+    border: none;
+    text-shadow: 0 0 0 #000;
+}
+
+#Navigation li a:hover,
+#Navigation li a.active {
+    background-color: #c03000;
+}
+
+#Navigation li a strong {
+    display: block;
+    font: 16px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
+    font-style: normal;
+    font-weight: bold;
+    color: #d0cdb8;
+    line-height: 20px;
+    margin: 0px 0px 4px 0px;
+}
+
+#Navigation li a:hover strong,
+#Navigation li a.active strong {
+    color: #FFF;
+}
+
+/* @end */
+
+
+/* @group Content */
+
+#Content {
+    padding: 25px 0px 20px 25px;
+    background: #d0cdb8 url("../images/bg-body.png") top left repeat-x;
+}
+
+#ContentWrapper {
+    width: 870px;
+}
+
+#Content img {
+    margin: 0px 0px 20px 0px;
+    border: 10px solid #b4af91;
+}
+
+ul.toolbar {
+    overflow: hidden;
+    position: static;
+    width: 870px;
+    border-top: 1px solid #787746;
+    margin: 0px 0px 30px 0px;
+}
+
+ul.toolbar li {
+    float: right;
+    display: inline;
+    list-style-type: none;
+    border-right: 1px solid #787746;
+    padding: 6px 12px 6px 0px;
+    margin: 0px 0px 0px 15px;
+    font-size: 12px;
+}
+
+ul.toolbar li a {
+    color: #787746;
+    border-color: #787746;
+}
+
+ul.toolbar li.first-child {
+    border: none;
+}
+
+/* @end */
+
+
+/* @group Comments */
+
+#CommentsList {
+    margin: 0px 0px 30px 0px;
+}
+
+#CommentsList li {
+    overflow: hidden;
+    position: static;
+    width: 870px;
+    border-top: 1px solid #787746;
+    padding: 15px 0px 0px 0px;
+    margin: 0px 0px 20px 0px;
+}
+
+#CommentsList li .comment-content {
+    float: left;
+    display: inline;
+    width: 670px;
+    margin: 0px 40px 0px 0px;
+}
+
+#CommentsList li .comment-author {
+    float: left;
+    display: inline;
+    width: 160px;
+}
+
+#CommentsList li .comment-author img {
+    border-width: 5px;
+    margin-bottom: 4px;
+}
+
+#CommentsList li .comment-author p {
+    margin-bottom: 0px;
+    font-size: 12px;
+}
+
+#CommentForm {
+    width: 870px;
+    overflow: hidden;
+    position: static;
+    padding: 15px 0px 0px 0px;
+    border-top: 1px solid #787746;
+}
+
+#CommentForm ul {
+    float: left;
+    display: inline;
+    width: 540px;
+    margin: 0px 10px 0px 0px;
+}
+
+#CommentForm ul li {
+    width: 540px;
+}
+
+#MarkDownCheatSheet {
+    float: left;
+    display: inline;
+    width: 320px;
+    display: none;
+}
+
+/* @end */
+
+
+/* @group Footer */
+
+#Footer {
+    padding: 20px 0px 16px 25px;
+    background: #c0bf99 url("../images/bg-footer.png") bottom left repeat-x;
+}
+
+#FooterWrapper {
+    overflow: hidden;
+    position: static;
+    width: 870px;
+}
+
+#FooterWrapper li {
+    float: left;
+    display: inline;
+    width: 250px;
+    padding: 0px 20px 0px 0px;
+    margin: 0px 20px 0px 0px;
+    border-right: 1px solid #32331d;
+}
+
+#FooterWrapper li.last-child {
+    margin-right: 0px;
+    border-right: none;
+}
+
+#FooterWrapper li li {
+    float: none;
+    display: block;
+    border: none;
+    width: auto;
+    padding: 0px;
+    margin: 0px 0px 6px 0px;
+}
+
+#FooterWrapper li ul.rss li {
+    padding-left: 20px;
+    background: transparent url("../images/icon-rss.png") 0px 3px no-repeat;
+}
+
+#Footer div.hr {
+    border-top: 1px solid #32331d;
+    padding: 0px;
+    background: none;
+}
+
+#Footer h6 a {
+    color: #1b1b1b;
+    border: none;
+}
+
+#SearchForm {
+    margin: 0px 0px 20px 0px;
+}
+
+#SearchForm input.submit {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0px;
+}
+
+/* @end */
+
+
+/* @group Copyright */
+
+#Copyright {
+    font: 11px Georgia, "Times New Roman", Times, serif;
+    font-style: italic;
+    color: #d0cdb8;
+    padding: 0px 0px 0px 25px;
+    text-shadow: 0 0 0 #000;
+}
+
+/* @end */

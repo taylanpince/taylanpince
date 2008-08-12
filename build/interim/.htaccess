@@ -1,0 +1,7 @@
+RewriteEngine on
+
+RewriteRule ^$ index.html
+RewriteRule ^/$ index.html
+
+RewriteRule ^about$ /about/ [R]
+RewriteRule ^about/$ about.html

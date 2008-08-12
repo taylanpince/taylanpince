@@ -4,9 +4,9 @@ Polish-specific form helpers
 
 import re
 
-from django.newforms import ValidationError
-from django.newforms.fields import Select, RegexField
-from django.utils.translation import ugettext as _
+from django.forms import ValidationError
+from django.forms.fields import Select, RegexField
+from django.utils.translation import ugettext_lazy as _
 
 class PLVoivodeshipSelect(Select):
     """

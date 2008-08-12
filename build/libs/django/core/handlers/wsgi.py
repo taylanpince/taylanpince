@@ -7,7 +7,8 @@ except ImportError:
 
 from django import http
 from django.core import signals
-from django.core.handlers.base import BaseHandler
+from django.core.handlers import base
+from django.core.urlresolvers import set_script_prefix
 from django.dispatch import dispatcher
 from django.utils import datastructures
 from django.utils.encoding import force_unicode
@@ -74,9 +75,20 @@ def safe_copyfileobj(fsrc, fdst, length=16*1024, size=0):
 
 class WSGIRequest(http.HttpRequest):
     def __init__(self, environ):
+        script_name = base.get_script_name(environ)
+        path_info = force_unicode(environ.get('PATH_INFO', u'/'))
+        if not path_info:
+            # Sometimes PATH_INFO exists, but is empty (e.g. accessing
+            # the SCRIPT_NAME URL without a trailing slash). We really need to
+            # operate as if they'd requested '/'. Not amazingly nice to force
+            # the path like this, but should be harmless.
+            path_info = u'/'
         self.environ = environ
-        self.path = force_unicode(environ['PATH_INFO'])
+        self.path_info = path_info
+        self.path = '%s%s' % (script_name, path_info)
         self.META = environ
+        self.META['PATH_INFO'] = path_info
+        self.META['SCRIPT_NAME'] = script_name
         self.method = environ['REQUEST_METHOD'].upper()
 
     def __repr__(self):
@@ -112,9 +124,8 @@ class WSGIRequest(http.HttpRequest):
         # Populates self._post and self._files
         if self.method == 'POST':
             if self.environ.get('CONTENT_TYPE', '').startswith('multipart'):
-                header_dict = dict([(k, v) for k, v in self.environ.items() if k.startswith('HTTP_')])
-                header_dict['Content-Type'] = self.environ.get('CONTENT_TYPE', '')
-                self._post, self._files = http.parse_file_upload(header_dict, self.raw_post_data)
+                self._raw_post_data = ''
+                self._post, self._files = self.parse_file_upload(self.META, self.environ['wsgi.input'])
             else:
                 self._post, self._files = http.QueryDict(self.raw_post_data, encoding=self._encoding), datastructures.MultiValueDict()
         else:
@@ -179,7 +190,7 @@ class WSGIRequest(http.HttpRequest):
     REQUEST = property(_get_request)
     raw_post_data = property(_get_raw_post_data)
 
-class WSGIHandler(BaseHandler):
+class WSGIHandler(base.BaseHandler):
     initLock = Lock()
     request_class = WSGIRequest
 
@@ -195,6 +206,7 @@ class WSGIHandler(BaseHandler):
                 self.load_middleware()
             self.initLock.release()
 
+        set_script_prefix(base.get_script_name(environ))
         dispatcher.send(signal=signals.request_started)
         try:
             try:

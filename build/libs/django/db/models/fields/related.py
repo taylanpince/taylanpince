@@ -1,15 +1,14 @@
 from django.db import connection, transaction
 from django.db.models import signals, get_model
-from django.db.models.fields import AutoField, Field, IntegerField, PositiveIntegerField, PositiveSmallIntegerField, get_ul_class, FieldDoesNotExist
+from django.db.models.fields import AutoField, Field, IntegerField, PositiveIntegerField, PositiveSmallIntegerField, FieldDoesNotExist
 from django.db.models.related import RelatedObject
+from django.db.models.query import QuerySet
 from django.db.models.query_utils import QueryWrapper
-from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy, string_concat, ungettext, ugettext as _
 from django.utils.functional import curry
-from django.utils.encoding import smart_unicode
 from django.core import validators
 from django import oldforms
-from django import newforms as forms
+from django import forms
 from django.dispatch import dispatcher
 
 try:
@@ -24,7 +23,7 @@ RECURSIVE_RELATIONSHIP_CONSTANT = 'self'
 
 pending_lookups = {}
 
-def add_lazy_relation(cls, field, relation):
+def add_lazy_relation(cls, field, relation, operation):
     """
     Adds a lookup on ``cls`` when a related field is defined using a string,
     i.e.::
@@ -46,6 +45,8 @@ def add_lazy_relation(cls, field, relation):
     If the other model hasn't yet been loaded -- almost a given if you're using
     lazy relationships -- then the relation won't be set up until the
     class_prepared signal fires at the end of model initialization.
+    
+    operation is the work that must be performed once the relation can be resolved.
     """
     # Check for recursive relations
     if relation == RECURSIVE_RELATIONSHIP_CONSTANT:
@@ -67,11 +68,10 @@ def add_lazy_relation(cls, field, relation):
     # is prepared.
     model = get_model(app_label, model_name, False)
     if model:
-        field.rel.to = model
-        field.do_related_class(model, cls)
+        operation(field, model, cls)
     else:
         key = (app_label, model_name)
-        value = (cls, field)
+        value = (cls, field, operation)
         pending_lookups.setdefault(key, []).append(value)
 
 def do_pending_lookups(sender):
@@ -79,9 +79,8 @@ def do_pending_lookups(sender):
     Handle any pending relations to the sending model. Sent from class_prepared.
     """
     key = (sender._meta.app_label, sender.__name__)
-    for cls, field in pending_lookups.pop(key, []):
-        field.rel.to = sender
-        field.do_related_class(sender, cls)
+    for cls, field, operation in pending_lookups.pop(key, []):
+        operation(field, sender, cls)
 
 dispatcher.connect(do_pending_lookups, signal=signals.class_prepared)
 
@@ -103,23 +102,30 @@ class RelatedField(object):
 
         if hasattr(sup, 'contribute_to_class'):
             sup.contribute_to_class(cls, name)
-        other = self.rel.to
-        if isinstance(other, basestring):
-            add_lazy_relation(cls, self, other)
-        else:
-            self.do_related_class(other, cls)
+
         if not cls._meta.abstract and self.rel.related_name:
             self.rel.related_name = self.rel.related_name % {'class': cls.__name__.lower()}
 
+        other = self.rel.to
+        if isinstance(other, basestring):
+            def resolve_related_class(field, model, cls):
+                field.rel.to = model
+                field.do_related_class(model, cls)
+            add_lazy_relation(cls, self, other, resolve_related_class)
+        else:
+            self.do_related_class(other, cls)
+
     def set_attributes_from_rel(self):
         self.name = self.name or (self.rel.to._meta.object_name.lower() + '_' + self.rel.to._meta.pk.name)
-        self.verbose_name = self.verbose_name or self.rel.to._meta.verbose_name
+        if self.verbose_name is None:
+            self.verbose_name = self.rel.to._meta.verbose_name
         self.rel.field_name = self.rel.field_name or self.rel.to._meta.pk.name
 
     def do_related_class(self, other, cls):
         self.set_attributes_from_rel()
         related = RelatedObject(other, cls, self)
-        self.contribute_to_related_class(other, related)
+        if not cls._meta.abstract:
+            self.contribute_to_related_class(other, related)
 
     def get_db_prep_lookup(self, lookup_type, value):
         # If we are doing a lookup on a Related Field, we must be
@@ -182,11 +188,11 @@ class SingleRelatedObjectDescriptor(object):
     def __set__(self, instance, value):
         if instance is None:
             raise AttributeError, "%s must be accessed via instance" % self.related.opts.object_name
-        
-        # The similarity of the code below to the code in 
+
+        # The similarity of the code below to the code in
         # ReverseSingleRelatedObjectDescriptor is annoying, but there's a bunch
         # of small differences that would make a common base class convoluted.
-        
+
         # If null=True, we can assign null here, but otherwise the value needs
         # to be an instance of the related class.
         if value is None and self.related.field.null == False:
@@ -194,14 +200,14 @@ class SingleRelatedObjectDescriptor(object):
                                 (instance._meta.object_name, self.related.get_accessor_name()))
         elif value is not None and not isinstance(value, self.related.model):
             raise ValueError('Cannot assign "%r": "%s.%s" must be a "%s" instance.' %
-                                (value, instance._meta.object_name, 
+                                (value, instance._meta.object_name,
                                  self.related.get_accessor_name(), self.related.opts.object_name))
-        
+
         # Set the value of the related field
         setattr(value, self.related.field.rel.get_related_field().attname, instance)
 
         # Since we already know what the related object is, seed the related
-        # object caches now, too. This avoids another db hit if you get the 
+        # object caches now, too. This avoids another db hit if you get the
         # object you just set.
         setattr(instance, self.cache_name, value)
         setattr(value, self.related.field.get_cache_name(), instance)
@@ -233,14 +239,14 @@ class ReverseSingleRelatedObjectDescriptor(object):
                 params = {'%s__pk' % self.field.rel.field_name: val}
             else:
                 params = {'%s__exact' % self.field.rel.field_name: val}
-            rel_obj = self.field.rel.to._default_manager.get(**params)
+            rel_obj = QuerySet(self.field.rel.to).get(**params)
             setattr(instance, cache_name, rel_obj)
             return rel_obj
 
     def __set__(self, instance, value):
         if instance is None:
             raise AttributeError, "%s must be accessed via instance" % self._field.name
-        
+
         # If null=True, we can assign null here, but otherwise the value needs
         # to be an instance of the related class.
         if value is None and self.field.null == False:
@@ -248,9 +254,9 @@ class ReverseSingleRelatedObjectDescriptor(object):
                                 (instance._meta.object_name, self.field.name))
         elif value is not None and not isinstance(value, self.field.rel.to):
             raise ValueError('Cannot assign "%r": "%s.%s" must be a "%s" instance.' %
-                                (value, instance._meta.object_name, 
+                                (value, instance._meta.object_name,
                                  self.field.name, self.field.rel.to._meta.object_name))
-        
+
         # Set the value of the related field
         try:
             val = getattr(value, self.field.rel.get_related_field().attname)
@@ -259,7 +265,7 @@ class ReverseSingleRelatedObjectDescriptor(object):
         setattr(instance, self.field.attname, val)
 
         # Since we already know what the related object is, seed the related
-        # object cache now, too. This avoids another db hit if you get the 
+        # object cache now, too. This avoids another db hit if you get the
         # object you just set.
         setattr(instance, self.field.get_cache_name(), value)
 
@@ -319,7 +325,9 @@ class ForeignRelatedObjectsDescriptor(object):
                 clear.alters_data = True
 
         manager = RelatedManager()
-        manager.core_filters = {'%s__pk' % rel_field.name: getattr(instance, rel_field.rel.get_related_field().attname)}
+        attname = rel_field.rel.get_related_field().name
+        manager.core_filters = {'%s__%s' % (rel_field.name, attname):
+                getattr(instance, attname)}
         manager.model = self.related.model
 
         return manager
@@ -335,7 +343,7 @@ class ForeignRelatedObjectsDescriptor(object):
             manager.clear()
         manager.add(*value)
 
-def create_many_related_manager(superclass):
+def create_many_related_manager(superclass, through=False):
     """Creates a manager that subclasses 'superclass' (which is a Manager)
     and adds behavior for many-to-many related objects."""
     class ManyRelatedManager(superclass):
@@ -349,6 +357,7 @@ def create_many_related_manager(superclass):
             self.join_table = join_table
             self.source_col_name = source_col_name
             self.target_col_name = target_col_name
+            self.through = through
             self._pk_val = self.instance._get_pk_val()
             if self._pk_val is None:
                 raise ValueError("%r instance needs to have a primary key value before a many-to-many relationship can be used." % instance.__class__.__name__)
@@ -356,21 +365,24 @@ def create_many_related_manager(superclass):
         def get_query_set(self):
             return superclass.get_query_set(self).filter(**(self.core_filters))
 
-        def add(self, *objs):
-            self._add_items(self.source_col_name, self.target_col_name, *objs)
+        # If the ManyToMany relation has an intermediary model, 
+        # the add and remove methods do not exist.
+        if through is None:
+            def add(self, *objs):
+                self._add_items(self.source_col_name, self.target_col_name, *objs)
 
-            # If this is a symmetrical m2m relation to self, add the mirror entry in the m2m table
-            if self.symmetrical:
-                self._add_items(self.target_col_name, self.source_col_name, *objs)
-        add.alters_data = True
+                # If this is a symmetrical m2m relation to self, add the mirror entry in the m2m table
+                if self.symmetrical:
+                    self._add_items(self.target_col_name, self.source_col_name, *objs)
+            add.alters_data = True
 
-        def remove(self, *objs):
-            self._remove_items(self.source_col_name, self.target_col_name, *objs)
+            def remove(self, *objs):
+                self._remove_items(self.source_col_name, self.target_col_name, *objs)
 
-            # If this is a symmetrical m2m relation to self, remove the mirror entry in the m2m table
-            if self.symmetrical:
-                self._remove_items(self.target_col_name, self.source_col_name, *objs)
-        remove.alters_data = True
+                # If this is a symmetrical m2m relation to self, remove the mirror entry in the m2m table
+                if self.symmetrical:
+                    self._remove_items(self.target_col_name, self.source_col_name, *objs)
+            remove.alters_data = True
 
         def clear(self):
             self._clear_items(self.source_col_name)
@@ -381,6 +393,10 @@ def create_many_related_manager(superclass):
         clear.alters_data = True
 
         def create(self, **kwargs):
+            # This check needs to be done here, since we can't later remove this
+            # from the method lookup table, as we do with add and remove.
+            if through is not None:
+                raise AttributeError, "Cannot use create() on a ManyToManyField which specifies an intermediary model. Use %s's Manager instead." % through
             new_obj = self.model(**kwargs)
             new_obj.save()
             self.add(new_obj)
@@ -468,7 +484,7 @@ class ManyRelatedObjectsDescriptor(object):
         # model's default manager.
         rel_model = self.related.model
         superclass = rel_model._default_manager.__class__
-        RelatedManager = create_many_related_manager(superclass)
+        RelatedManager = create_many_related_manager(superclass, self.related.field.rel.through)
 
         qn = connection.ops.quote_name
         manager = RelatedManager(
@@ -486,6 +502,10 @@ class ManyRelatedObjectsDescriptor(object):
     def __set__(self, instance, value):
         if instance is None:
             raise AttributeError, "Manager must be accessed via instance"
+
+        through = getattr(self.related.field.rel, 'through', None)
+        if through is not None:
+            raise AttributeError, "Cannot set values on a ManyToManyField which specifies an intermediary model. Use %s's Manager instead." % through
 
         manager = self.__get__(instance)
         manager.clear()
@@ -509,7 +529,7 @@ class ReverseManyRelatedObjectsDescriptor(object):
         # model's default manager.
         rel_model=self.field.rel.to
         superclass = rel_model._default_manager.__class__
-        RelatedManager = create_many_related_manager(superclass)
+        RelatedManager = create_many_related_manager(superclass, self.field.rel.through)
 
         qn = connection.ops.quote_name
         manager = RelatedManager(
@@ -528,6 +548,10 @@ class ReverseManyRelatedObjectsDescriptor(object):
         if instance is None:
             raise AttributeError, "Manager must be accessed via instance"
 
+        through = getattr(self.field.rel, 'through', None)
+        if through is not None:
+            raise AttributeError, "Cannot set values on a ManyToManyField which specifies an intermediary model.  Use %s's Manager instead." % through
+
         manager = self.__get__(instance)
         manager.clear()
         manager.add(*value)
@@ -536,7 +560,7 @@ class ManyToOneRel(object):
     def __init__(self, to, field_name, num_in_admin=3, min_num_in_admin=None,
             max_num_in_admin=None, num_extra_on_change=1, edit_inline=False,
             related_name=None, limit_choices_to=None, lookup_overrides=None,
-            raw_id_admin=False, parent_link=False):
+            parent_link=False):
         try:
             to._meta
         except AttributeError: # to._meta doesn't exist, so it must be RECURSIVE_RELATIONSHIP_CONSTANT
@@ -549,7 +573,6 @@ class ManyToOneRel(object):
             limit_choices_to = {}
         self.limit_choices_to = limit_choices_to
         self.lookup_overrides = lookup_overrides or {}
-        self.raw_id_admin = raw_id_admin
         self.multiple = True
         self.parent_link = parent_link
 
@@ -568,33 +591,29 @@ class OneToOneRel(ManyToOneRel):
     def __init__(self, to, field_name, num_in_admin=0, min_num_in_admin=None,
             max_num_in_admin=None, num_extra_on_change=None, edit_inline=False,
             related_name=None, limit_choices_to=None, lookup_overrides=None,
-            raw_id_admin=False, parent_link=False):
+            parent_link=False):
         # NOTE: *_num_in_admin and num_extra_on_change are intentionally
         # ignored here. We accept them as parameters only to match the calling
         # signature of ManyToOneRel.__init__().
         super(OneToOneRel, self).__init__(to, field_name, num_in_admin,
                 edit_inline=edit_inline, related_name=related_name,
                 limit_choices_to=limit_choices_to,
-                lookup_overrides=lookup_overrides, raw_id_admin=raw_id_admin,
-                parent_link=parent_link)
+                lookup_overrides=lookup_overrides, parent_link=parent_link)
         self.multiple = False
 
 class ManyToManyRel(object):
     def __init__(self, to, num_in_admin=0, related_name=None,
-        filter_interface=None, limit_choices_to=None, raw_id_admin=False, symmetrical=True):
+        limit_choices_to=None, symmetrical=True, through=None):
         self.to = to
         self.num_in_admin = num_in_admin
         self.related_name = related_name
-        self.filter_interface = filter_interface
         if limit_choices_to is None:
             limit_choices_to = {}
         self.limit_choices_to = limit_choices_to
         self.edit_inline = False
-        self.raw_id_admin = raw_id_admin
         self.symmetrical = symmetrical
         self.multiple = True
-
-        assert not (self.raw_id_admin and self.filter_interface), "ManyToManyRels may not use both raw_id_admin and filter_interface"
+        self.through = through
 
 class ForeignKey(RelatedField, Field):
     empty_strings_allowed = False
@@ -605,12 +624,7 @@ class ForeignKey(RelatedField, Field):
             assert isinstance(to, basestring), "%s(%r) is invalid. First parameter to ForeignKey must be either a model, a model name, or the string %r" % (self.__class__.__name__, to, RECURSIVE_RELATIONSHIP_CONSTANT)
         else:
             to_field = to_field or to._meta.pk.name
-        kwargs['verbose_name'] = kwargs.get('verbose_name', '')
-
-        if 'edit_inline_type' in kwargs:
-            import warnings
-            warnings.warn("edit_inline_type is deprecated. Use edit_inline instead.", DeprecationWarning)
-            kwargs['edit_inline'] = kwargs.pop('edit_inline_type')
+        kwargs['verbose_name'] = kwargs.get('verbose_name', None)
 
         kwargs['rel'] = rel_class(to, to_field,
             num_in_admin=kwargs.pop('num_in_admin', 3),
@@ -621,7 +635,6 @@ class ForeignKey(RelatedField, Field):
             related_name=kwargs.pop('related_name', None),
             limit_choices_to=kwargs.pop('limit_choices_to', None),
             lookup_overrides=kwargs.pop('lookup_overrides', None),
-            raw_id_admin=kwargs.pop('raw_id_admin', False),
             parent_link=kwargs.pop('parent_link', False))
         Field.__init__(self, **kwargs)
 
@@ -635,19 +648,11 @@ class ForeignKey(RelatedField, Field):
 
     def prepare_field_objs_and_params(self, manipulator, name_prefix):
         params = {'validator_list': self.validator_list[:], 'member_name': name_prefix + self.attname}
-        if self.rel.raw_id_admin:
-            field_objs = self.get_manipulator_field_objs()
-            params['validator_list'].append(curry(manipulator_valid_rel_key, self, manipulator))
+        if self.null:
+            field_objs = [oldforms.NullSelectField]
         else:
-            if self.radio_admin:
-                field_objs = [oldforms.RadioSelectField]
-                params['ul_class'] = get_ul_class(self.radio_admin)
-            else:
-                if self.null:
-                    field_objs = [oldforms.NullSelectField]
-                else:
-                    field_objs = [oldforms.SelectField]
-            params['choices'] = self.get_choices_default()
+            field_objs = [oldforms.SelectField]
+        params['choices'] = self.get_choices_default()
         return field_objs, params
 
     def get_default(self):
@@ -659,10 +664,7 @@ class ForeignKey(RelatedField, Field):
 
     def get_manipulator_field_objs(self):
         rel_field = self.rel.get_related_field()
-        if self.rel.raw_id_admin and not isinstance(rel_field, AutoField):
-            return rel_field.get_manipulator_field_objs()
-        else:
-            return [oldforms.IntegerField]
+        return [oldforms.IntegerField]
 
     def get_db_prep_save(self, value):
         if value == '' or value == None:
@@ -674,27 +676,28 @@ class ForeignKey(RelatedField, Field):
         if not obj:
             # In required many-to-one fields with only one available choice,
             # select that one available choice. Note: For SelectFields
-            # (radio_admin=False), we have to check that the length of choices
-            # is *2*, not 1, because SelectFields always have an initial
-            # "blank" value. Otherwise (radio_admin=True), we check that the
-            # length is 1.
-            if not self.blank and (not self.rel.raw_id_admin or self.choices):
+            # we have to check that the length of choices is *2*, not 1,
+            # because SelectFields always have an initial "blank" value.
+            if not self.blank and self.choices:
                 choice_list = self.get_choices_default()
-                if self.radio_admin and len(choice_list) == 1:
-                    return {self.attname: choice_list[0][0]}
-                if not self.radio_admin and len(choice_list) == 2:
+                if len(choice_list) == 2:
                     return {self.attname: choice_list[1][0]}
         return Field.flatten_data(self, follow, obj)
 
     def contribute_to_class(self, cls, name):
         super(ForeignKey, self).contribute_to_class(cls, name)
         setattr(cls, self.name, ReverseSingleRelatedObjectDescriptor(self))
+        if isinstance(self.rel.to, basestring):
+            target = self.rel.to
+        else:
+            target = self.rel.to._meta.db_table
+        cls._meta.duplicate_targets[self.column] = (target, "o2m")
 
     def contribute_to_related_class(self, cls, related):
         setattr(cls, related.get_accessor_name(), ForeignRelatedObjectsDescriptor(related))
 
     def formfield(self, **kwargs):
-        defaults = {'form_class': forms.ModelChoiceField, 'queryset': self.rel.to._default_manager.all()}
+        defaults = {'form_class': forms.ModelChoiceField, 'queryset': self.rel.to._default_manager.complex_filter(self.rel.limit_choices_to)}
         defaults.update(kwargs)
         return super(ForeignKey, self).formfield(**defaults)
 
@@ -717,6 +720,7 @@ class OneToOneField(ForeignKey):
     """
     def __init__(self, to, to_field=None, **kwargs):
         kwargs['unique'] = True
+        kwargs['editable'] = False
         if 'num_in_admin' not in kwargs:
             kwargs['num_in_admin'] = 0
         super(OneToOneField, self).__init__(to, to_field, OneToOneRel, **kwargs)
@@ -733,53 +737,87 @@ class ManyToManyField(RelatedField, Field):
         kwargs['rel'] = ManyToManyRel(to,
             num_in_admin=kwargs.pop('num_in_admin', 0),
             related_name=kwargs.pop('related_name', None),
-            filter_interface=kwargs.pop('filter_interface', None),
             limit_choices_to=kwargs.pop('limit_choices_to', None),
-            raw_id_admin=kwargs.pop('raw_id_admin', False),
-            symmetrical=kwargs.pop('symmetrical', True))
+            symmetrical=kwargs.pop('symmetrical', True),
+            through=kwargs.pop('through', None))
+            
         self.db_table = kwargs.pop('db_table', None)
-        if kwargs["rel"].raw_id_admin:
-            kwargs.setdefault("validator_list", []).append(self.isValidIDList)
+        if kwargs['rel'].through is not None:
+            self.creates_table = False
+            assert self.db_table is None, "Cannot specify a db_table if an intermediary model is used."
+        else:
+            self.creates_table = True
+
         Field.__init__(self, **kwargs)
 
-        if self.rel.raw_id_admin:
-            msg = ugettext_lazy('Separate multiple IDs with commas.')
-        else:
-            msg = ugettext_lazy('Hold down "Control", or "Command" on a Mac, to select more than one.')
+        msg = ugettext_lazy('Hold down "Control", or "Command" on a Mac, to select more than one.')
         self.help_text = string_concat(self.help_text, ' ', msg)
 
     def get_manipulator_field_objs(self):
-        if self.rel.raw_id_admin:
-            return [oldforms.RawIdAdminField]
-        else:
-            choices = self.get_choices_default()
-            return [curry(oldforms.SelectMultipleField, size=min(max(len(choices), 5), 15), choices=choices)]
+        choices = self.get_choices_default()
+        return [curry(oldforms.SelectMultipleField, size=min(max(len(choices), 5), 15), choices=choices)]
 
     def get_choices_default(self):
         return Field.get_choices(self, include_blank=False)
 
     def _get_m2m_db_table(self, opts):
         "Function that can be curried to provide the m2m table name for this relation"
-        if self.db_table:
+        if self.rel.through is not None:
+            return self.rel.through_model._meta.db_table
+        elif self.db_table:
             return self.db_table
         else:
             return '%s_%s' % (opts.db_table, self.name)
 
     def _get_m2m_column_name(self, related):
         "Function that can be curried to provide the source column name for the m2m table"
-        # If this is an m2m relation to self, avoid the inevitable name clash
-        if related.model == related.parent_model:
-            return 'from_' + related.model._meta.object_name.lower() + '_id'
-        else:
-            return related.model._meta.object_name.lower() + '_id'
+        try:
+            return self._m2m_column_name_cache
+        except:
+            if self.rel.through is not None:
+                for f in self.rel.through_model._meta.fields:
+                    if hasattr(f,'rel') and f.rel and f.rel.to == related.model:
+                        self._m2m_column_name_cache = f.column
+                        break
+            # If this is an m2m relation to self, avoid the inevitable name clash
+            elif related.model == related.parent_model:
+                self._m2m_column_name_cache = 'from_' + related.model._meta.object_name.lower() + '_id'
+            else:
+                self._m2m_column_name_cache = related.model._meta.object_name.lower() + '_id'
+                
+            # Return the newly cached value
+            return self._m2m_column_name_cache
 
     def _get_m2m_reverse_name(self, related):
         "Function that can be curried to provide the related column name for the m2m table"
-        # If this is an m2m relation to self, avoid the inevitable name clash
-        if related.model == related.parent_model:
-            return 'to_' + related.parent_model._meta.object_name.lower() + '_id'
-        else:
-            return related.parent_model._meta.object_name.lower() + '_id'
+        try:
+            return self._m2m_reverse_name_cache
+        except:
+            if self.rel.through is not None:
+                found = False
+                for f in self.rel.through_model._meta.fields:
+                    if hasattr(f,'rel') and f.rel and f.rel.to == related.parent_model:
+                        if related.model == related.parent_model:
+                            # If this is an m2m-intermediate to self, 
+                            # the first foreign key you find will be 
+                            # the source column. Keep searching for
+                            # the second foreign key.
+                            if found:
+                                self._m2m_reverse_name_cache = f.column
+                                break
+                            else:
+                                found = True
+                        else:
+                            self._m2m_reverse_name_cache = f.column
+                            break
+            # If this is an m2m relation to self, avoid the inevitable name clash
+            elif related.model == related.parent_model:
+                self._m2m_reverse_name_cache = 'to_' + related.parent_model._meta.object_name.lower() + '_id'
+            else:
+                self._m2m_reverse_name_cache = related.parent_model._meta.object_name.lower() + '_id'
+
+            # Return the newly cached value
+            return self._m2m_reverse_name_cache
 
     def isValidIDList(self, field_data, all_data):
         "Validates that the value is a valid list of foreign keys"
@@ -802,26 +840,39 @@ class ManyToManyField(RelatedField, Field):
         new_data = {}
         if obj:
             instance_ids = [instance._get_pk_val() for instance in getattr(obj, self.name).all()]
-            if self.rel.raw_id_admin:
-                new_data[self.name] = u",".join([smart_unicode(id) for id in instance_ids])
-            else:
-                new_data[self.name] = instance_ids
+            new_data[self.name] = instance_ids
         else:
             # In required many-to-many fields with only one available choice,
             # select that one available choice.
-            if not self.blank and not self.rel.edit_inline and not self.rel.raw_id_admin:
+            if not self.blank and not self.rel.edit_inline:
                 choices_list = self.get_choices_default()
                 if len(choices_list) == 1:
                     new_data[self.name] = [choices_list[0][0]]
         return new_data
 
     def contribute_to_class(self, cls, name):
-        super(ManyToManyField, self).contribute_to_class(cls, name)
+        super(ManyToManyField, self).contribute_to_class(cls, name)        
         # Add the descriptor for the m2m relation
         setattr(cls, self.name, ReverseManyRelatedObjectsDescriptor(self))
 
         # Set up the accessor for the m2m table name for the relation
         self.m2m_db_table = curry(self._get_m2m_db_table, cls._meta)
+        
+        # Populate some necessary rel arguments so that cross-app relations
+        # work correctly.
+        if isinstance(self.rel.through, basestring):
+            def resolve_through_model(field, model, cls):
+                field.rel.through_model = model
+            add_lazy_relation(cls, self, self.rel.through, resolve_through_model)
+        elif self.rel.through:
+            self.rel.through_model = self.rel.through
+            self.rel.through = self.rel.through._meta.object_name
+            
+        if isinstance(self.rel.to, basestring):
+            target = self.rel.to
+        else:
+            target = self.rel.to._meta.db_table
+        cls._meta.duplicate_targets[self.column] = (target, "m2m")
 
     def contribute_to_related_class(self, cls, related):
         # m2m relations to self do not have a ManyRelatedObjectsDescriptor,
@@ -845,7 +896,7 @@ class ManyToManyField(RelatedField, Field):
         setattr(instance, self.attname, data)
 
     def formfield(self, **kwargs):
-        defaults = {'form_class': forms.ModelMultipleChoiceField, 'queryset': self.rel.to._default_manager.all()}
+        defaults = {'form_class': forms.ModelMultipleChoiceField, 'queryset': self.rel.to._default_manager.complex_filter(self.rel.limit_choices_to)}
         defaults.update(kwargs)
         # If initial is passed in, it's a list of related objects, but the
         # MultipleChoiceField takes a list of IDs.

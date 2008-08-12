@@ -52,6 +52,7 @@ LANGUAGES = (
     ('el', gettext_noop('Greek')),
     ('en', gettext_noop('English')),
     ('es', gettext_noop('Spanish')),
+    ('et', gettext_noop('Estonian')), 
     ('es-ar', gettext_noop('Argentinean Spanish')),
     ('eu', gettext_noop('Basque')),
     ('fa', gettext_noop('Persian')),
@@ -70,6 +71,7 @@ LANGUAGES = (
     ('km', gettext_noop('Khmer')),
     ('kn', gettext_noop('Kannada')),
     ('lv', gettext_noop('Latvian')),
+    ('lt', gettext_noop('Lithuanian')),
     ('mk', gettext_noop('Macedonian')),
     ('nl', gettext_noop('Dutch')),
     ('no', gettext_noop('Norwegian')),
@@ -186,6 +188,9 @@ APPEND_SLASH = True
 # Whether to prepend the "www." subdomain to URLs that don't have it.
 PREPEND_WWW = False
 
+# Override the server-derived value of SCRIPT_NAME
+FORCE_SCRIPT_NAME = None
+
 # List of compiled regular expression objects representing User-Agent strings
 # that are not allowed to visit any page, systemwide. Use this for bad
 # robots/crawlers. Here are a few examples:
@@ -228,6 +233,21 @@ MEDIA_ROOT = ''
 # URL that handles the media served from MEDIA_ROOT.
 # Example: "http://media.lawrence.com"
 MEDIA_URL = ''
+
+# List of upload handler classes to be applied in order.
+FILE_UPLOAD_HANDLERS = (
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+)
+
+# Maximum size, in bytes, of a request before it will be streamed to the
+# file system instead of into memory.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440 # i.e. 2.5 MB
+
+# Directory in which upload streamed files will be temporarily saved. A value of
+# `None` will make Django use the operating system's default temporary directory
+# (i.e. "/tmp" on *nix systems).
+FILE_UPLOAD_TEMP_DIR = None
 
 # Default formatting for date objects. See all available format strings here:
 # http://www.djangoproject.com/documentation/templates/#now
@@ -345,6 +365,9 @@ LOGIN_URL = '/accounts/login/'
 LOGOUT_URL = '/accounts/logout/'
 
 LOGIN_REDIRECT_URL = '/accounts/profile/'
+
+# The number of days a password reset link is valid for
+PASSWORD_RESET_TIMEOUT_DAYS = 3
 
 ###########
 # TESTING #

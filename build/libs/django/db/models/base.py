@@ -3,45 +3,44 @@ import types
 import sys
 import os
 from itertools import izip
+try:
+    set
+except NameError:
+    from sets import Set as set     # Python 2.3 fallback.
 
 import django.db.models.manipulators    # Imported to register signal handler.
 import django.db.models.manager         # Ditto.
 from django.core import validators
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, FieldError
-from django.db.models.fields import AutoField, ImageField, FieldDoesNotExist
+from django.db.models.fields import AutoField, ImageField
 from django.db.models.fields.related import OneToOneRel, ManyToOneRel, OneToOneField
-from django.db.models.query import delete_objects, Q
-from django.db.models.options import Options, AdminOptions
+from django.db.models.query import delete_objects, Q, CollectedObjects
+from django.db.models.options import Options
 from django.db import connection, transaction
 from django.db.models import signals
 from django.db.models.loading import register_models, get_model
 from django.dispatch import dispatcher
-from django.utils.datastructures import SortedDict
 from django.utils.functional import curry
 from django.utils.encoding import smart_str, force_unicode, smart_unicode
+from django.core.files.move import file_move_safe
+from django.core.files import locks
 from django.conf import settings
 
-try:
-    set
-except NameError:
-    from sets import Set as set     # Python 2.3 fallback
 
 class ModelBase(type):
-    "Metaclass for all models"
+    """
+    Metaclass for all models.
+    """
     def __new__(cls, name, bases, attrs):
-        # If this isn't a subclass of Model, don't do anything special.
-        try:
-            parents = [b for b in bases if issubclass(b, Model)]
-        except NameError:
-            # 'Model' isn't defined yet, meaning we're looking at Django's own
-            # Model class, defined below.
-            parents = []
+        super_new = super(ModelBase, cls).__new__
+        parents = [b for b in bases if isinstance(b, ModelBase)]
         if not parents:
-            return super(ModelBase, cls).__new__(cls, name, bases, attrs)
+            # If this isn't a subclass of Model, don't do anything special.
+            return super_new(cls, name, bases, attrs)
 
         # Create the class.
         module = attrs.pop('__module__')
-        new_class = type.__new__(cls, name, bases, {'__module__': module})
+        new_class = super_new(cls, name, bases, {'__module__': module})
         attr_meta = attrs.pop('Meta', None)
         abstract = getattr(attr_meta, 'abstract', False)
         if not attr_meta:
@@ -50,7 +49,15 @@ class ModelBase(type):
             meta = attr_meta
         base_meta = getattr(new_class, '_meta', None)
 
-        new_class.add_to_class('_meta', Options(meta))
+        if getattr(meta, 'app_label', None) is None:
+            # Figure out the app_label by looking one level up.
+            # For 'django.contrib.sites.models', this would be 'sites'.
+            model_module = sys.modules[new_class.__module__]
+            kwargs = {"app_label": model_module.__name__.split('.')[-2]}
+        else:
+            kwargs = {}
+
+        new_class.add_to_class('_meta', Options(meta, **kwargs))
         if not abstract:
             new_class.add_to_class('DoesNotExist',
                     subclass_exception('DoesNotExist', ObjectDoesNotExist, module))
@@ -71,11 +78,6 @@ class ModelBase(type):
             if new_class._default_manager.model._meta.abstract:
                 old_default_mgr = new_class._default_manager
             new_class._default_manager = None
-        if getattr(new_class._meta, 'app_label', None) is None:
-            # Figure out the app_label by looking one level up.
-            # For 'django.contrib.sites.models', this would be 'sites'.
-            model_module = sys.modules[new_class.__module__]
-            new_class._meta.app_label = model_module.__name__.split('.')[-2]
 
         # Bail out early if we have already created this class.
         m = get_model(new_class._meta.app_label, name, False)
@@ -134,16 +136,15 @@ class ModelBase(type):
         return get_model(new_class._meta.app_label, name, False)
 
     def add_to_class(cls, name, value):
-        if name == 'Admin':
-            assert type(value) == types.ClassType, "%r attribute of %s model must be a class, not a %s object" % (name, cls.__name__, type(value))
-            value = AdminOptions(**dict([(k, v) for k, v in value.__dict__.items() if not k.startswith('_')]))
         if hasattr(value, 'contribute_to_class'):
             value.contribute_to_class(cls, name)
         else:
             setattr(cls, name, value)
 
     def _prepare(cls):
-        # Creates some methods once self._meta has been populated.
+        """
+        Creates some methods once self._meta has been populated.
+        """
         opts = cls._meta
         opts._prepare(cls)
 
@@ -161,6 +162,7 @@ class ModelBase(type):
             cls.get_absolute_url = curry(get_absolute_url, opts, cls.get_absolute_url)
 
         dispatcher.send(signal=signals.class_prepared, sender=cls)
+
 
 class Model(object):
     __metaclass__ = ModelBase
@@ -198,6 +200,7 @@ class Model(object):
         # keywords, or default.
 
         for field in fields_iter:
+            rel_obj = None
             if kwargs:
                 if isinstance(field.rel, ManyToOneRel):
                     try:
@@ -214,17 +217,18 @@ class Model(object):
                         # pass in "None" for related objects if it's allowed.
                         if rel_obj is None and field.null:
                             val = None
-                        else:
-                            try:
-                                val = getattr(rel_obj, field.rel.get_related_field().attname)
-                            except AttributeError:
-                                raise TypeError("Invalid value: %r should be a %s instance, not a %s" %
-                                    (field.name, field.rel.to, type(rel_obj)))
                 else:
                     val = kwargs.pop(field.attname, field.get_default())
             else:
                 val = field.get_default()
-            setattr(self, field.attname, val)
+            # If we got passed a related instance, set it using the field.name
+            # instead of field.attname (e.g. "user" instead of "user_id") so
+            # that the object gets properly cached (and type checked) by the
+            # RelatedObjectDescriptor.
+            if rel_obj:
+                setattr(self, field.name, rel_obj)
+            else:
+                setattr(self, field.attname, val)
 
         if kwargs:
             for prop in kwargs.keys():
@@ -266,7 +270,7 @@ class Model(object):
 
     def save(self):
         """
-        Save the current instance. Override this in a subclass if you want to
+        Saves the current instance. Override this in a subclass if you want to
         control the saving process.
         """
         self.save_base()
@@ -292,15 +296,21 @@ class Model(object):
 
         # If we are in a raw save, save the object exactly as presented.
         # That means that we don't try to be smart about saving attributes
-        # that might have come from the parent class - we just save the 
+        # that might have come from the parent class - we just save the
         # attributes we have been given to the class we have been given.
         if not raw:
             for parent, field in meta.parents.items():
+                # At this point, parent's primary key field may be unknown
+                # (for example, from administration form which doesn't fill
+                # this field). If so, fill it.
+                if getattr(self, parent._meta.pk.attname) is None and getattr(self, field.attname) is not None:
+                    setattr(self, parent._meta.pk.attname, getattr(self, field.attname))
+
                 self.save_base(raw, parent)
                 setattr(self, field.attname, self._get_pk_val(parent._meta))
 
         non_pks = [f for f in meta.local_fields if not f.primary_key]
-            
+
         # First, try an UPDATE. If that doesn't update anything, do an INSERT.
         pk_val = self._get_pk_val(meta)
         # Note: the comparison with '' is required for compatibility with
@@ -368,17 +378,18 @@ class Model(object):
                 error_dict[f.name] = errors
         return error_dict
 
-    def _collect_sub_objects(self, seen_objs):
+    def _collect_sub_objects(self, seen_objs, parent=None, nullable=False):
         """
-        Recursively populates seen_objs with all objects related to this object.
-        When done, seen_objs will be in the format:
-            {model_class: {pk_val: obj, pk_val: obj, ...},
-             model_class: {pk_val: obj, pk_val: obj, ...}, ...}
+        Recursively populates seen_objs with all objects related to this
+        object.
+
+        When done, seen_objs.items() will be in the format:
+            [(model_class, {pk_val: obj, pk_val: obj, ...}),
+             (model_class, {pk_val: obj, pk_val: obj, ...}), ...]
         """
         pk_val = self._get_pk_val()
-        if pk_val in seen_objs.setdefault(self.__class__, {}):
+        if seen_objs.add(self.__class__, pk_val, self, parent, nullable):
             return
-        seen_objs.setdefault(self.__class__, {})[pk_val] = self
 
         for related in self._meta.get_all_related_objects():
             rel_opts_name = related.get_accessor_name()
@@ -388,26 +399,41 @@ class Model(object):
                 except ObjectDoesNotExist:
                     pass
                 else:
-                    sub_obj._collect_sub_objects(seen_objs)
+                    sub_obj._collect_sub_objects(seen_objs, self.__class__, related.field.null)
             else:
                 for sub_obj in getattr(self, rel_opts_name).all():
-                    sub_obj._collect_sub_objects(seen_objs)
+                    sub_obj._collect_sub_objects(seen_objs, self.__class__, related.field.null)
+
+        # Handle any ancestors (for the model-inheritance case). We do this by
+        # traversing to the most remote parent classes -- those with no parents
+        # themselves -- and then adding those instances to the collection. That
+        # will include all the child instances down to "self".
+        parent_stack = self._meta.parents.values()
+        while parent_stack:
+            link = parent_stack.pop()
+            parent_obj = getattr(self, link.name)
+            if parent_obj._meta.parents:
+                parent_stack.extend(parent_obj._meta.parents.values())
+                continue
+            # At this point, parent_obj is base class (no ancestor models). So
+            # delete it and all its descendents.
+            parent_obj._collect_sub_objects(seen_objs)
 
     def delete(self):
         assert self._get_pk_val() is not None, "%s object can't be deleted because its %s attribute is set to None." % (self._meta.object_name, self._meta.pk.attname)
 
-        # Find all the objects than need to be deleted
-        seen_objs = SortedDict()
+        # Find all the objects than need to be deleted.
+        seen_objs = CollectedObjects()
         self._collect_sub_objects(seen_objs)
 
-        # Actually delete the objects
+        # Actually delete the objects.
         delete_objects(seen_objs)
 
     delete.alters_data = True
 
     def _get_FIELD_display(self, field):
         value = getattr(self, field.attname)
-        return force_unicode(dict(field.choices).get(value, value), strings_only=True)
+        return force_unicode(dict(field.flatchoices).get(value, value), strings_only=True)
 
     def _get_next_or_previous_by_FIELD(self, field, is_next, **kwargs):
         op = is_next and 'gt' or 'lt'
@@ -439,12 +465,12 @@ class Model(object):
         return getattr(self, cachename)
 
     def _get_FIELD_filename(self, field):
-        if getattr(self, field.attname): # value is not blank
-            return os.path.join(settings.MEDIA_ROOT, getattr(self, field.attname))
+        if getattr(self, field.attname): # Value is not blank.
+            return os.path.normpath(os.path.join(settings.MEDIA_ROOT, getattr(self, field.attname)))
         return ''
 
     def _get_FIELD_url(self, field):
-        if getattr(self, field.attname): # value is not blank
+        if getattr(self, field.attname): # Value is not blank.
             import urlparse
             return urlparse.urljoin(settings.MEDIA_URL, getattr(self, field.attname)).replace('\\', '/')
         return ''
@@ -452,34 +478,71 @@ class Model(object):
     def _get_FIELD_size(self, field):
         return os.path.getsize(self._get_FIELD_filename(field))
 
-    def _save_FIELD_file(self, field, filename, raw_contents, save=True):
-        directory = field.get_directory_name()
-        try: # Create the date-based directory if it doesn't exist.
-            os.makedirs(os.path.join(settings.MEDIA_ROOT, directory))
-        except OSError: # Directory probably already exists.
-            pass
+    def _save_FIELD_file(self, field, filename, raw_field, save=True):
+        # Create the upload directory if it doesn't already exist
+        directory = os.path.join(settings.MEDIA_ROOT, field.get_directory_name())
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        elif not os.path.isdir(directory):
+            raise IOError('%s exists and is not a directory' % directory)        
+
+        # Check for old-style usage (files-as-dictionaries). Warn here first
+        # since there are multiple locations where we need to support both new
+        # and old usage.
+        if isinstance(raw_field, dict):
+            import warnings
+            warnings.warn(
+                message = "Representing uploaded files as dictionaries is deprecated. Use django.core.files.uploadedfile.SimpleUploadedFile instead.",
+                category = DeprecationWarning,
+                stacklevel = 2
+            )
+            from django.core.files.uploadedfile import SimpleUploadedFile
+            raw_field = SimpleUploadedFile.from_dict(raw_field)
+
+        elif isinstance(raw_field, basestring):
+            import warnings
+            warnings.warn(
+                message = "Representing uploaded files as strings is deprecated. Use django.core.files.uploadedfile.SimpleUploadedFile instead.",
+                category = DeprecationWarning,
+                stacklevel = 2
+            )
+            from django.core.files.uploadedfile import SimpleUploadedFile
+            raw_field = SimpleUploadedFile(filename, raw_field)
+
+        if filename is None:
+            filename = raw_field.file_name
+
         filename = field.get_filename(filename)
 
-        # If the filename already exists, keep adding an underscore to the name of
-        # the file until the filename doesn't exist.
+        # If the filename already exists, keep adding an underscore to the name
+        # of the file until the filename doesn't exist.
         while os.path.exists(os.path.join(settings.MEDIA_ROOT, filename)):
             try:
                 dot_index = filename.rindex('.')
-            except ValueError: # filename has no dot
+            except ValueError: # filename has no dot.
                 filename += '_'
             else:
                 filename = filename[:dot_index] + '_' + filename[dot_index:]
 
-        # Write the file to disk.
+        # Save the file name on the object and write the file to disk.
         setattr(self, field.attname, filename)
-
         full_filename = self._get_FIELD_filename(field)
-        fp = open(full_filename, 'wb')
-        fp.write(raw_contents)
-        fp.close()
+        if hasattr(raw_field, 'temporary_file_path'):
+            # This file has a file path that we can move.
+            raw_field.close()
+            file_move_safe(raw_field.temporary_file_path(), full_filename)
+        else:
+            # This is a normal uploadedfile that we can stream.
+            fp = open(full_filename, 'wb')
+            locks.lock(fp, locks.LOCK_EX)
+            for chunk in raw_field.chunks():
+                fp.write(chunk)
+            locks.unlock(fp)
+            fp.close()
 
         # Save the width and/or height, if applicable.
-        if isinstance(field, ImageField) and (field.width_field or field.height_field):
+        if isinstance(field, ImageField) and \
+                (field.width_field or field.height_field):
             from django.utils.images import get_image_dimensions
             width, height = get_image_dimensions(full_filename)
             if field.width_field:
@@ -487,7 +550,7 @@ class Model(object):
             if field.height_field:
                 setattr(self, field.height_field, height)
 
-        # Save the object because it has changed unless save is False
+        # Save the object because it has changed, unless save is False.
         if save:
             self.save()
 
@@ -507,6 +570,7 @@ class Model(object):
             setattr(self, cachename, get_image_dimensions(filename))
         return getattr(self, cachename)
 
+
 ############################################
 # HELPER FUNCTIONS (CURRIED MODEL METHODS) #
 ############################################
@@ -522,6 +586,7 @@ def method_set_order(ordered_obj, self, id_list):
         ordered_obj.objects.filter(**{'pk': j, order_name: rel_val}).update(_order=i)
     transaction.commit_unless_managed()
 
+
 def method_get_order(ordered_obj, self):
     rel_val = getattr(self, ordered_obj._meta.order_with_respect_to.rel.field_name)
     order_name = ordered_obj._meta.order_with_respect_to.name
@@ -529,12 +594,14 @@ def method_get_order(ordered_obj, self):
     return [r[pk_name] for r in
             ordered_obj.objects.filter(**{order_name: rel_val}).values(pk_name)]
 
+
 ##############################################
 # HELPER FUNCTIONS (CURRIED MODEL FUNCTIONS) #
 ##############################################
 
 def get_absolute_url(opts, func, self, *args, **kwargs):
     return settings.ABSOLUTE_URL_OVERRIDES.get('%s.%s' % (opts.app_label, opts.module_name), func)(self, *args, **kwargs)
+
 
 ########
 # MISC #
@@ -547,8 +614,6 @@ if sys.version_info < (2, 5):
     # Prior to Python 2.5, Exception was an old-style class
     def subclass_exception(name, parent, unused):
         return types.ClassType(name, (parent,), {})
-
 else:
     def subclass_exception(name, parent, module):
         return type(name, (parent,), {'__module__': module})
-
