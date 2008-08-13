@@ -5,6 +5,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm, PasswordChangeForm, AdminPasswordChangeForm
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import PermissionDenied
+from django.core.urlresolvers import reverse
 from django.shortcuts import render_to_response, get_object_or_404
 from django.contrib.sites.models import Site, RequestSite
 from django.http import HttpResponseRedirect, Http404
@@ -90,7 +91,7 @@ def password_reset(request, is_admin_site=False, template_name='registration/pas
                 if not Site._meta.installed:
                     opts['domain_override'] = RequestSite(request).domain
             form.save(**opts)
-            return HttpResponseRedirect('%sdone/' % request.path)
+            return HttpResponseRedirect(reverse('django.contrib.auth.views.password_reset_done'))
     else:
         form = password_reset_form()
     return render_to_response(template_name, {
@@ -121,7 +122,7 @@ def password_reset_confirm(request, uidb36=None, token=None, template_name='regi
             form = set_password_form(user, request.POST)
             if form.is_valid():
                 form.save()
-                return HttpResponseRedirect("../done/")
+                return HttpResponseRedirect(reverse('django.contrib.auth.views.password_reset_complete'))
         else:
             form = set_password_form(None)
     else:
@@ -139,7 +140,7 @@ def password_change(request, template_name='registration/password_change_form.ht
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             form.save()
-            return HttpResponseRedirect('%sdone/' % request.path)
+            return HttpResponseRedirect(reverse('django.contrib.auth.views.password_change_done'))
     else:
         form = PasswordChangeForm(request.user)
     return render_to_response(template_name, {
@@ -149,33 +150,3 @@ password_change = login_required(password_change)
 
 def password_change_done(request, template_name='registration/password_change_done.html'):
     return render_to_response(template_name, context_instance=RequestContext(request))
-
-# TODO: move to admin.py in the ModelAdmin
-def user_change_password(request, id):
-    if not request.user.has_perm('auth.change_user'):
-        raise PermissionDenied
-    user = get_object_or_404(User, pk=id)
-    if request.method == 'POST':
-        form = AdminPasswordChangeForm(user, request.POST)
-        if form.is_valid():
-            new_user = form.save()
-            msg = _('Password changed successfully.')
-            request.user.message_set.create(message=msg)
-            return HttpResponseRedirect('..')
-    else:
-        form = AdminPasswordChangeForm(user)
-    return render_to_response('admin/auth/user/change_password.html', {
-        'title': _('Change password: %s') % escape(user.username),
-        'form': form,
-        'is_popup': '_popup' in request.REQUEST,
-        'add': True,
-        'change': False,
-        'has_delete_permission': False,
-        'has_change_permission': True,
-        'has_absolute_url': False,
-        'opts': User._meta,
-        'original': user,
-        'save_as': False,
-        'show_save': True,
-        'root_path': re.sub('auth/user/(\d+)/password/$', '', request.path),
-    }, context_instance=RequestContext(request))

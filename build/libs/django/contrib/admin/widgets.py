@@ -84,9 +84,9 @@ class AdminFileWidget(forms.FileInput):
         
     def render(self, name, value, attrs=None):
         output = []
-        if value:
-            output.append('%s <a target="_blank" href="%s%s">%s</a> <br />%s ' % \
-                (_('Currently:'), settings.MEDIA_URL, value, value, _('Change:')))
+        if value and hasattr(value, "url"):
+            output.append('%s <a target="_blank" href="%s">%s</a> <br />%s ' % \
+                (_('Currently:'), value.url, value, _('Change:')))
         output.append(super(AdminFileWidget, self).render(name, value, attrs))
         return mark_safe(u''.join(output))
 
@@ -208,3 +208,31 @@ class RelatedFieldWidgetWrapper(forms.Widget):
 
     def id_for_label(self, id_):
         return self.widget.id_for_label(id_)
+
+class AdminTextareaWidget(forms.Textarea):
+    def __init__(self, attrs=None):
+        final_attrs = {'class': 'vLargeTextField'}
+        if attrs is not None:
+            final_attrs.update(attrs)
+        super(AdminTextareaWidget, self).__init__(attrs=final_attrs)
+
+class AdminTextInputWidget(forms.TextInput):
+    def __init__(self, attrs=None):
+        final_attrs = {'class': 'vTextField'}
+        if attrs is not None:
+            final_attrs.update(attrs)
+        super(AdminTextInputWidget, self).__init__(attrs=final_attrs)
+
+class AdminURLFieldWidget(forms.TextInput):
+    def __init__(self, attrs=None):
+        final_attrs = {'class': 'vURLField'}
+        if attrs is not None:
+            final_attrs.update(attrs)
+        super(AdminURLFieldWidget, self).__init__(attrs=final_attrs)
+
+class AdminIntegerFieldWidget(forms.TextInput):
+    def __init__(self, attrs=None):
+        final_attrs = {'class': 'vIntegerField'}
+        if attrs is not None:
+            final_attrs.update(attrs)
+        super(AdminIntegerFieldWidget, self).__init__(attrs=final_attrs)

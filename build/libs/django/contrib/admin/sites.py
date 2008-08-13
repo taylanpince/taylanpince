@@ -6,6 +6,7 @@ from django import http, template
 from django.contrib.admin import ModelAdmin
 from django.contrib.auth import authenticate, login
 from django.db.models.base import ModelBase
+from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import render_to_response
 from django.utils.safestring import mark_safe
 from django.utils.text import capfirst
@@ -16,8 +17,6 @@ from django.utils.hashcompat import md5_constructor
 
 ERROR_MESSAGE = ugettext_lazy("Please enter a correct username and password. Note that both fields are case-sensitive.")
 LOGIN_FORM_KEY = 'this_is_the_login_form'
-
-USER_CHANGE_PASSWORD_URL_RE = re.compile('auth/user/(\d+)/password')
 
 class AlreadyRegistered(Exception):
     pass
@@ -112,6 +111,24 @@ class AdminSite(object):
         *at least one* page in the admin site.
         """
         return request.user.is_authenticated() and request.user.is_staff
+    
+    def check_dependencies(self):
+        """
+        Check that all things needed to run the admin have been correctly installed.
+
+        The default implementation checks that LogEntry, ContentType and the
+        auth context processor are installed.
+        """
+        from django.conf import settings
+        from django.contrib.admin.models import LogEntry
+        from django.contrib.contenttypes.models import ContentType
+
+        if not LogEntry._meta.installed:
+            raise ImproperlyConfigured("Put 'django.contrib.admin' in your INSTALLED_APPS setting in order to use the admin application.")
+        if not ContentType._meta.installed:
+            raise ImproperlyConfigured("Put 'django.contrib.contenttypes' in your INSTALLED_APPS setting in order to use the admin application.")
+        if 'django.core.context_processors.auth' not in settings.TEMPLATE_CONTEXT_PROCESSORS:
+            raise ImproperlyConfigured("Put 'django.core.context_processors.auth' in your TEMPLATE_CONTEXT_PROCESSORS setting in order to use the admin application.")
 
     def root(self, request, url):
         """
@@ -121,6 +138,9 @@ class AdminSite(object):
         """
         if request.method == 'GET' and not request.path.endswith('/'):
             return http.HttpResponseRedirect(request.path + '/')
+        
+        if settings.DEBUG:
+            self.check_dependencies()
 
         # Figure out the admin base URL path and stash it for later use
         self.root_path = re.sub(re.escape(url) + '$', '', request.path)
@@ -148,10 +168,6 @@ class AdminSite(object):
             from django.views.defaults import shortcut
             return shortcut(request, *url.split('/')[1:])
         else:
-            match = USER_CHANGE_PASSWORD_URL_RE.match(url)
-            if match:
-                return self.user_change_password(request, match.group(1))
-
             if '/' in url:
                 return self.model_page(request, *url.split('/', 2))
 
@@ -186,13 +202,6 @@ class AdminSite(object):
         """
         from django.contrib.auth.views import password_change_done
         return password_change_done(request)
-
-    def user_change_password(self, request, id):
-        """
-        Handles the "user change password" task
-        """
-        from django.contrib.auth.views import user_change_password
-        return user_change_password(request, id)
 
     def i18n_javascript(self, request):
         """
@@ -269,7 +278,7 @@ class AdminSite(object):
                         return self.root(request, request.path.split(self.root_path)[-1])
                     else:
                         request.session.delete_test_cookie()
-                        return http.HttpResponseRedirect(request.path)
+                        return http.HttpResponseRedirect(request.get_full_path())
             else:
                 return self.display_login_form(request, ERROR_MESSAGE)
     login = never_cache(login)
@@ -341,7 +350,7 @@ class AdminSite(object):
 
         context = {
             'title': _('Log in'),
-            'app_path': request.path,
+            'app_path': request.get_full_path(),
             'post_data': post_data,
             'error_message': error_message,
             'root_path': self.root_path,

@@ -4,8 +4,13 @@ PostgreSQL database backend for Django.
 Requires psycopg 2: http://initd.org/projects/psycopg2
 """
 
-from django.db.backends import BaseDatabaseWrapper, BaseDatabaseFeatures
+from django.db.backends import *
 from django.db.backends.postgresql.operations import DatabaseOperations as PostgresqlDatabaseOperations
+from django.db.backends.postgresql.client import DatabaseClient
+from django.db.backends.postgresql.creation import DatabaseCreation
+from django.db.backends.postgresql.version import get_version
+from django.db.backends.postgresql_psycopg2.introspection import DatabaseIntrospection
+
 from django.utils.safestring import SafeUnicode
 try:
     import psycopg2 as Database
@@ -22,6 +27,7 @@ psycopg2.extensions.register_adapter(SafeUnicode, psycopg2.extensions.QuotedStri
 
 class DatabaseFeatures(BaseDatabaseFeatures):
     needs_datetime_string_cast = False
+    uses_savepoints = True
 
 class DatabaseOperations(PostgresqlDatabaseOperations):
     def last_executed_query(self, cursor, sql, params):
@@ -31,8 +37,6 @@ class DatabaseOperations(PostgresqlDatabaseOperations):
         return cursor.query
 
 class DatabaseWrapper(BaseDatabaseWrapper):
-    features = DatabaseFeatures()
-    ops = DatabaseOperations()
     operators = {
         'exact': '= %s',
         'iexact': 'ILIKE %s',
@@ -49,6 +53,16 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'istartswith': 'ILIKE %s',
         'iendswith': 'ILIKE %s',
     }
+
+    def __init__(self, *args, **kwargs):
+        super(DatabaseWrapper, self).__init__(*args, **kwargs)
+        
+        self.features = DatabaseFeatures()
+        self.ops = DatabaseOperations()
+        self.client = DatabaseClient()
+        self.creation = DatabaseCreation(self)
+        self.introspection = DatabaseIntrospection(self)
+        self.validation = BaseDatabaseValidation()
 
     def _cursor(self, settings):
         set_tz = False
@@ -73,4 +87,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cursor.tzinfo_factory = None
         if set_tz:
             cursor.execute("SET TIME ZONE %s", [settings.TIME_ZONE])
+            if not hasattr(self, '_version'):
+                version = get_version(cursor)
+                self.__class__._version = version
+                if version < (8, 0):
+                    # No savepoint support for earlier version of PostgreSQL.
+                    self.features.uses_savepoints = False
         return cursor

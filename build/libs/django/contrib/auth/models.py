@@ -78,10 +78,13 @@ class Permission(models.Model):
         verbose_name = _('permission')
         verbose_name_plural = _('permissions')
         unique_together = (('content_type', 'codename'),)
-        ordering = ('content_type', 'codename')
+        ordering = ('content_type__app_label', 'codename')
 
     def __unicode__(self):
-        return u"%s | %s | %s" % (self.content_type.app_label, self.content_type, self.name)
+        return u"%s | %s | %s" % (
+            unicode(self.content_type.app_label),
+            unicode(self.content_type),
+            unicode(self.name))
 
 class Group(models.Model):
     """Groups are a generic way of categorizing users to apply permissions, or some other label, to those users. A user can belong to any number of groups.
@@ -96,7 +99,7 @@ class Group(models.Model):
     class Meta:
         verbose_name = _('group')
         verbose_name_plural = _('groups')
-        
+
     def __unicode__(self):
         return self.name
 
@@ -131,7 +134,7 @@ class User(models.Model):
 
     Username and password are required. Other fields are optional.
     """
-    username = models.CharField(_('username'), max_length=30, unique=True, validator_list=[validators.isAlphaNumeric], help_text=_("Required. 30 characters or fewer. Alphanumeric characters only (letters, digits and underscores)."))
+    username = models.CharField(_('username'), max_length=30, unique=True, help_text=_("Required. 30 characters or fewer. Alphanumeric characters only (letters, digits and underscores)."))
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
     last_name = models.CharField(_('last name'), max_length=30, blank=True)
     email = models.EmailField(_('e-mail address'), blank=True)
@@ -149,7 +152,7 @@ class User(models.Model):
     class Meta:
         verbose_name = _('user')
         verbose_name_plural = _('users')
-        
+
     def __unicode__(self):
         return self.username
 
