@@ -5,6 +5,7 @@ r"""
 >>> from django.contrib.sessions.backends.cache import SessionStore as CacheSession
 >>> from django.contrib.sessions.backends.file import SessionStore as FileSession
 >>> from django.contrib.sessions.backends.base import SessionBase
+>>> from django.contrib.sessions.models import Session
 
 >>> db_session = DatabaseSession()
 >>> db_session.modified
@@ -23,6 +24,25 @@ True
 >>> db_session.exists(db_session.session_key)
 False
 
+>>> db_session['foo'] = 'bar'
+>>> db_session.save()
+>>> db_session.exists(db_session.session_key)
+True
+>>> prev_key = db_session.session_key
+>>> db_session.flush()
+>>> db_session.exists(prev_key)
+False
+>>> db_session.session_key == prev_key
+False
+>>> db_session.modified, db_session.accessed
+(True, True)
+
+# Submitting an invalid session key (either by guessing, or if the db has
+# removed the key) results in a new key being generated.
+>>> Session.objects.filter(pk=db_session.session_key).delete()
+>>> db_session = DatabaseSession(db_session.session_key)
+>>> db_session.save()
+
 >>> file_session = FileSession()
 >>> file_session.modified
 False
@@ -39,6 +59,22 @@ True
 >>> file_session.delete(file_session.session_key)
 >>> file_session.exists(file_session.session_key)
 False
+
+>>> file_session['foo'] = 'bar'
+>>> file_session.save()
+>>> file_session.exists(file_session.session_key)
+True
+>>> prev_key = file_session.session_key
+>>> file_session.flush()
+>>> file_session.exists(prev_key)
+False
+>>> file_session.session_key == prev_key
+False
+>>> file_session.modified, file_session.accessed
+(True, True)
+>>> Session.objects.filter(pk=file_session.session_key).delete()
+>>> file_session = FileSession(file_session.session_key)
+>>> file_session.save()
 
 # Make sure the file backend checks for a good storage dir
 >>> settings.SESSION_FILE_PATH = "/if/this/directory/exists/you/have/a/weird/computer"
@@ -61,6 +97,21 @@ True
 >>> cache_session.delete(cache_session.session_key)
 >>> cache_session.exists(cache_session.session_key)
 False
+>>> cache_session['foo'] = 'bar'
+>>> cache_session.save()
+>>> cache_session.exists(cache_session.session_key)
+True
+>>> prev_key = cache_session.session_key
+>>> cache_session.flush()
+>>> cache_session.exists(prev_key)
+False
+>>> cache_session.session_key == prev_key
+False
+>>> cache_session.modified, cache_session.accessed
+(True, True)
+>>> Session.objects.filter(pk=cache_session.session_key).delete()
+>>> cache_session = CacheSession(cache_session.session_key)
+>>> cache_session.save()
 
 >>> s = SessionBase()
 >>> s._session['some key'] = 'exists' # Pre-populate the session with some data
@@ -147,7 +198,15 @@ True
 >>> list(i)
 [('x', 1)]
 
- 
+# test .clear()
+>>> s.modified = s.accessed = False
+>>> s.items()
+[('x', 1)]
+>>> s.clear()
+>>> s.items()
+[]
+>>> s.accessed, s.modified
+(True, True)
 
 #########################
 # Custom session expiry #

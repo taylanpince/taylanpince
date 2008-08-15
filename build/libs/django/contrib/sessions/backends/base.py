@@ -13,6 +13,19 @@ from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.utils.hashcompat import md5_constructor
 
+# Use the system (hardware-based) random number generator if it exists.
+if hasattr(random, 'SystemRandom'):
+    randrange = random.SystemRandom().randrange
+else:
+    randrange = random.randrange
+MAX_SESSION_KEY = 18446744073709551616L     # 2 << 63
+
+class CreateError(Exception):
+    """
+    Used internally as a consistent exception type to catch from save (see the
+    docstring for SessionBase.save() for details).
+    """
+    pass
 
 class SessionBase(object):
     """
@@ -107,6 +120,14 @@ class SessionBase(object):
     def iteritems(self):
         return self._session.iteritems()
 
+    def clear(self):
+        # To avoid unnecessary persistent storage accesses, we set up the
+        # internals directly (loading data wastes time, since we are going to
+        # set it to an empty dict anyway).
+        self._session_cache = {}
+        self.accessed = True
+        self.modified = True
+
     def _get_new_session_key(self):
         "Returns session key that isn't being used."
         # The random module is seeded when this Apache child is created.
@@ -117,8 +138,9 @@ class SessionBase(object):
             # No getpid() in Jython, for example
             pid = 1
         while 1:
-            session_key = md5_constructor("%s%s%s%s" % (random.randint(0, sys.maxint - 1),
-                                          pid, time.time(), settings.SECRET_KEY)).hexdigest()
+            session_key = md5_constructor("%s%s%s%s"
+                    % (randrange(0, MAX_SESSION_KEY), pid, time.time(),
+                       settings.SECRET_KEY)).hexdigest()
             if not self.exists(session_key):
                 break
         return session_key
@@ -135,13 +157,16 @@ class SessionBase(object):
 
     session_key = property(_get_session_key, _set_session_key)
 
-    def _get_session(self):
-        # Lazily loads session from storage.
+    def _get_session(self, no_load=False):
+        """
+        Lazily loads session from storage (unless "no_load" is True, when only
+        an empty dict is stored) and stores it in the current instance.
+        """
         self.accessed = True
         try:
             return self._session_cache
         except AttributeError:
-            if self._session_key is None:
+            if self._session_key is None or no_load:
                 self._session_cache = {}
             else:
                 self._session_cache = self.load()
@@ -205,6 +230,15 @@ class SessionBase(object):
             return settings.SESSION_EXPIRE_AT_BROWSER_CLOSE
         return self.get('_session_expiry') == 0
 
+    def flush(self):
+        """
+        Removes the current session data from the database and regenerates the
+        key.
+        """
+        self.clear()
+        self.delete()
+        self.create()
+
     # Methods that child classes must implement.
 
     def exists(self, session_key):
@@ -213,15 +247,26 @@ class SessionBase(object):
         """
         raise NotImplementedError
 
-    def save(self):
+    def create(self):
         """
-        Saves the session data.
+        Creates a new session instance. Guaranteed to create a new object with
+        a unique key and will have saved the result once (with empty data)
+        before the method returns.
         """
         raise NotImplementedError
 
-    def delete(self, session_key):
+    def save(self, must_create=False):
         """
-        Clears out the session data under this key.
+        Saves the session data. If 'must_create' is True, a new session object
+        is created (otherwise a CreateError exception is raised). Otherwise,
+        save() can update an existing object with the same key.
+        """
+        raise NotImplementedError
+
+    def delete(self, session_key=None):
+        """
+        Deletes the session data under this key. If the key is None, the
+        current session key value is used.
         """
         raise NotImplementedError
 
