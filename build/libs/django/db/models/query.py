@@ -95,6 +95,8 @@ class CollectedObjects(object):
         while len(dealt_with) < len(models):
             found = False
             for model in models:
+                if model in dealt_with:
+                    continue
                 children = self.children.setdefault(model, [])
                 if len([c for c in children if c not in dealt_with]) == 0:
                     dealt_with[model] = None
@@ -121,6 +123,7 @@ class QuerySet(object):
         self.query = query or sql.Query(self.model, connection)
         self._result_cache = None
         self._iter = None
+        self._sticky_filter = False
 
     ########################
     # PYTHON MAGIC METHODS #
@@ -307,7 +310,7 @@ class QuerySet(object):
         and returning the created object.
         """
         obj = self.model(**kwargs)
-        obj.save()
+        obj.save(force_insert=True)
         return obj
 
     def get_or_create(self, **kwargs):
@@ -327,12 +330,15 @@ class QuerySet(object):
                 params.update(defaults)
                 obj = self.model(**params)
                 sid = transaction.savepoint()
-                obj.save()
+                obj.save(force_insert=True)
                 transaction.savepoint_commit(sid)
                 return obj, True
             except IntegrityError, e:
                 transaction.savepoint_rollback(sid)
-                return self.get(**kwargs), False
+                try:
+                    return self.get(**kwargs), False
+                except self.model.DoesNotExist:
+                    raise e
 
     def latest(self, field_name=None):
         """
@@ -449,12 +455,8 @@ class QuerySet(object):
                 "'kind' must be one of 'year', 'month' or 'day'."
         assert order in ('ASC', 'DESC'), \
                 "'order' must be either 'ASC' or 'DESC'."
-        # Let the FieldDoesNotExist exception propagate.
-        field = self.model._meta.get_field(field_name, many_to_many=False)
-        assert isinstance(field, DateField), "%r isn't a DateField." \
-                % field_name
-        return self._clone(klass=DateQuerySet, setup=True, _field=field,
-                _kind=kind, _order=order)
+        return self._clone(klass=DateQuerySet, setup=True,
+                _field_name=field_name, _kind=kind, _order=order)
 
     def none(self):
         """
@@ -590,7 +592,10 @@ class QuerySet(object):
     def _clone(self, klass=None, setup=False, **kwargs):
         if klass is None:
             klass = self.__class__
-        c = klass(model=self.model, query=self.query.clone())
+        query = self.query.clone()
+        if self._sticky_filter:
+            query.filter_is_sticky = True
+        c = klass(model=self.model, query=query)
         c.__dict__.update(kwargs)
         if setup and hasattr(c, '_setup_query'):
             c._setup_query()
@@ -607,6 +612,20 @@ class QuerySet(object):
                     self._result_cache.append(self._iter.next())
             except StopIteration:
                 self._iter = None
+
+    def _next_is_sticky(self):
+        """
+        Indicates that the next filter call and the one following that should
+        be treated as a single filter. This is only important when it comes to
+        determining when to reuse tables for many-to-many filters. Required so
+        that we can filter naturally on the results of related managers.
+
+        This doesn't return a clone of the current QuerySet (it returns
+        "self"). The method is only used internally and should be immediately
+        followed by a filter() that does create a clone.
+        """
+        self._sticky_filter = True
+        return self
 
     def _merge_sanity_check(self, other):
         """
@@ -718,13 +737,16 @@ class DateQuerySet(QuerySet):
         """
         self.query = self.query.clone(klass=sql.DateQuery, setup=True)
         self.query.select = []
-        self.query.add_date_select(self._field, self._kind, self._order)
-        if self._field.null:
-            self.query.add_filter(('%s__isnull' % self._field.name, False))
+        field = self.model._meta.get_field(self._field_name, many_to_many=False)
+        assert isinstance(field, DateField), "%r isn't a DateField." \
+                % field.name
+        self.query.add_date_select(field, self._kind, self._order)
+        if field.null:
+            self.query.add_filter(('%s__isnull' % field.name, False))
 
     def _clone(self, klass=None, setup=False, **kwargs):
         c = super(DateQuerySet, self)._clone(klass, False, **kwargs)
-        c._field = self._field
+        c._field_name = self._field_name
         c._kind = self._kind
         if setup and hasattr(c, '_setup_query'):
             c._setup_query()
@@ -774,8 +796,9 @@ def get_cached_row(klass, row, index_start, max_depth=0, cur_depth=0,
     fields = row[index_start:index_end]
     if not [x for x in fields if x is not None]:
         # If we only have a list of Nones, there was not related object.
-        return None, index_end
-    obj = klass(*fields)
+        obj = None
+    else:
+        obj = klass(*fields)
     for f in klass._meta.fields:
         if not select_related_descend(f, restricted, requested):
             continue
@@ -787,7 +810,8 @@ def get_cached_row(klass, row, index_start, max_depth=0, cur_depth=0,
                 cur_depth+1, next)
         if cached_row:
             rel_obj, index_end = cached_row
-            setattr(obj, f.get_cache_name(), rel_obj)
+            if obj is not None:
+                setattr(obj, f.get_cache_name(), rel_obj)
     return obj, index_end
 
 

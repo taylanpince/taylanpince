@@ -7,7 +7,7 @@ from django.conf import settings
 from django.template import Template, Context, TemplateDoesNotExist
 from django.utils.html import escape
 from django.http import HttpResponse, HttpResponseServerError, HttpResponseNotFound
-from django.utils.encoding import smart_unicode
+from django.utils.encoding import smart_unicode, smart_str
 
 HIDDEN_SETTINGS = re.compile('SECRET|PASSWORD|PROFANITIES_LIST')
 
@@ -254,9 +254,9 @@ def technical_404_response(request, exception):
     t = Template(TECHNICAL_404_TEMPLATE, name='Technical 404 template')
     c = Context({
         'root_urlconf': settings.ROOT_URLCONF,
-        'request_path': request.path[1:], # Trim leading slash
+        'request_path': request.path_info[1:], # Trim leading slash
         'urlpatterns': tried,
-        'reason': str(exception),
+        'reason': smart_str(exception, errors='replace'),
         'request': request,
         'request_protocol': request.is_secure() and "https" or "http",
         'settings': get_safe_settings(),
@@ -282,7 +282,7 @@ TECHNICAL_500_TEMPLATE = """
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
   <meta name="robots" content="NONE,NOARCHIVE">
-  <title>{{ exception_type }} at {{ request.path|escape }}</title>
+  <title>{{ exception_type }} at {{ request.path_info|escape }}</title>
   <style type="text/css">
     html * { padding:0; margin:0; }
     body * { padding:10px 20px; }
@@ -328,6 +328,7 @@ TECHNICAL_500_TEMPLATE = """
     .specific { color:#cc3300; font-weight:bold; }
     h2 span.commands { font-size:.7em;}
     span.commands a:link {color:#5E5694;}
+    pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; margin: 10px 0 10px 0; }
   </style>
   <script type="text/javascript">
   //<!--
@@ -387,8 +388,8 @@ TECHNICAL_500_TEMPLATE = """
 </head>
 <body>
 <div id="summary">
-  <h1>{{ exception_type }} at {{ request.path|escape }}</h1>
-  <h2>{{ exception_value|escape }}</h2>
+  <h1>{{ exception_type }} at {{ request.path_info|escape }}</h1>
+  <pre class="exception_value">{{ exception_value|escape }}</pre>
   <table class="meta">
     <tr>
       <th>Request Method:</th>
@@ -396,7 +397,7 @@ TECHNICAL_500_TEMPLATE = """
     </tr>
     <tr>
       <th>Request URL:</th>
-      <td>{{ request_protocol }}://{{ request.META.HTTP_HOST }}{{ request.path|escape }}</td>
+      <td>{{ request_protocol }}://{{ request.META.HTTP_HOST }}{{ request.path_info|escape }}</td>
     </tr>
     <tr>
       <th>Exception Type:</th>
@@ -404,7 +405,7 @@ TECHNICAL_500_TEMPLATE = """
     </tr>
     <tr>
       <th>Exception Value:</th>
-      <td>{{ exception_value|escape }}</td>
+      <td><pre>{{ exception_value|escape }}<pre></td>
     </tr>
     <tr>
       <th>Exception Location:</th>
@@ -519,14 +520,14 @@ TECHNICAL_500_TEMPLATE = """
   <form action="http://dpaste.com/" name="pasteform" id="pasteform" method="post">
   <div id="pastebinTraceback" class="pastebin">
     <input type="hidden" name="language" value="PythonConsole">
-    <input type="hidden" name="title" value="{{ exception_type|escape }} at {{ request.path|escape }}">
+    <input type="hidden" name="title" value="{{ exception_type|escape }} at {{ request.path_info|escape }}">
     <input type="hidden" name="source" value="Django Dpaste Agent">
     <input type="hidden" name="poster" value="Django">
     <textarea name="content" id="traceback_area" cols="140" rows="25">
 Environment:
 
 Request Method: {{ request.META.REQUEST_METHOD }}
-Request URL: {{ request_protocol }}://{{ request.META.HTTP_HOST }}{{ request.path|escape }}
+Request URL: {{ request_protocol }}://{{ request.META.HTTP_HOST }}{{ request.path_info|escape }}
 Django Version: {{ django_version_info }}
 Python Version: {{ sys_version_info }}
 Installed Applications:
@@ -553,7 +554,7 @@ Traceback:
 {% for frame in frames %}File "{{ frame.filename|escape }}" in {{ frame.function|escape }}
 {% if frame.context_line %}  {{ frame.lineno }}. {{ frame.context_line|escape }}{% endif %}
 {% endfor %}
-Exception Type: {{ exception_type|escape }} at {{ request.path|escape }}
+Exception Type: {{ exception_type|escape }} at {{ request.path_info|escape }}
 Exception Value: {{ exception_value|escape }}
 </textarea>
   <br><br>
@@ -686,7 +687,7 @@ TECHNICAL_404_TEMPLATE = """
 <html lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <title>Page not found at {{ request.path|escape }}</title>
+  <title>Page not found at {{ request.path_info|escape }}</title>
   <meta name="robots" content="NONE,NOARCHIVE">
   <style type="text/css">
     html * { padding:0; margin:0; }
@@ -716,7 +717,7 @@ TECHNICAL_404_TEMPLATE = """
       </tr>
       <tr>
         <th>Request URL:</th>
-      <td>{{ request_protocol }}://{{ request.META.HTTP_HOST }}{{ request.path|escape }}</td>
+      <td>{{ request_protocol }}://{{ request.META.HTTP_HOST }}{{ request.path_info|escape }}</td>
       </tr>
     </table>
   </div>

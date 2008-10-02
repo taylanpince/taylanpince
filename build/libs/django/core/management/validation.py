@@ -68,7 +68,7 @@ def get_validation_errors(outfile, app=None):
             # fields, m2m fields, m2m related objects or related objects
             if f.rel:
                 if f.rel.to not in models.get_models():
-                    e.add(opts, "'%s' has relation with model %s, which has not been installed" % (f.name, f.rel.to))
+                    e.add(opts, "'%s' has a relation with model %s, which has either not been installed or is abstract." % (f.name, f.rel.to))
                 # it is a string and we could not find the model it refers to
                 # so skip the next section
                 if isinstance(f.rel.to, (str, unicode)):
@@ -99,17 +99,22 @@ def get_validation_errors(outfile, app=None):
                         if r.get_accessor_name() == rel_query_name:
                             e.add(opts, "Reverse query name for field '%s' clashes with related field '%s.%s'. Add a related_name argument to the definition for '%s'." % (f.name, rel_opts.object_name, r.get_accessor_name(), f.name))
 
-        seen_intermediary_signatures = [] 
+        seen_intermediary_signatures = []
         for i, f in enumerate(opts.local_many_to_many):
             # Check to see if the related m2m field will clash with any
             # existing fields, m2m fields, m2m related objects or related
             # objects
             if f.rel.to not in models.get_models():
-                e.add(opts, "'%s' has m2m relation with model %s, which has not been installed" % (f.name, f.rel.to))
+                e.add(opts, "'%s' has an m2m relation with model %s, which has either not been installed or is abstract." % (f.name, f.rel.to))
                 # it is a string and we could not find the model it refers to
                 # so skip the next section
                 if isinstance(f.rel.to, (str, unicode)):
                     continue
+
+            # Check that the field is not set to unique.  ManyToManyFields do not support unique.
+            if f.unique:
+                e.add(opts, "ManyToManyFields cannot be unique.  Remove the unique argument on '%s'." % f.name)
+
             if getattr(f.rel, 'through', None) is not None:
                 if hasattr(f.rel, 'through_model'):
                     from_model, to_model = cls, f.rel.to
@@ -126,7 +131,7 @@ def get_validation_errors(outfile, app=None):
                         else:
                             if rel_to == from_model:
                                 if seen_from:
-                                    e.add(opts, "Intermediary model %s has more than one foreign key to %s, which is ambiguous and is not permitted." % (f.rel.through_model._meta.object_name, rel_from._meta.object_name))
+                                    e.add(opts, "Intermediary model %s has more than one foreign key to %s, which is ambiguous and is not permitted." % (f.rel.through_model._meta.object_name, from_model._meta.object_name))
                                 else:
                                     seen_from = True
                             elif rel_to == to_model:
@@ -152,7 +157,7 @@ def get_validation_errors(outfile, app=None):
                         e.add(opts, "'%s' has a manually-defined m2m relation through model %s, which does not have foreign keys to %s and %s" % (f.name, f.rel.through, f.rel.to._meta.object_name, cls._meta.object_name))
                 else:
                     e.add(opts, "'%s' specifies an m2m relation through model %s, which has not been installed" % (f.name, f.rel.through))
-            
+
             rel_opts = f.rel.to._meta
             rel_name = RelatedObject(f.rel.to, cls, f).get_accessor_name()
             rel_query_name = f.related_query_name()

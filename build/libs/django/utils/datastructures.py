@@ -54,6 +54,11 @@ class SortedDict(dict):
     """
     A dictionary that keeps its keys in the order in which they're inserted.
     """
+    def __new__(cls, *args, **kwargs):
+        instance = super(SortedDict, cls).__new__(cls, *args, **kwargs)
+        instance.keyOrder = []
+        return instance
+
     def __init__(self, data=None):
         if data is None:
             data = {}
@@ -265,6 +270,14 @@ class MultiValueDict(dict):
         the list associated with the key.
         """
         return [(key, self[key]) for key in self.keys()]
+
+    def iteritems(self):
+        """
+        Yields (key, value) pairs, where value is the last item in the list
+        associated with the key.
+        """
+        for key in self.keys():
+            yield (key, self[key])
 
     def lists(self):
         """Returns a list of (key, list) pairs."""

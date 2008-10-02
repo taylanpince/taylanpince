@@ -10,21 +10,23 @@ except NameError:
 import copy
 from itertools import chain
 from django.conf import settings
-from django.utils.datastructures import MultiValueDict
+from django.utils.datastructures import MultiValueDict, MergeDict
 from django.utils.html import escape, conditional_escape
 from django.utils.translation import ugettext
 from django.utils.encoding import StrAndUnicode, force_unicode
 from django.utils.safestring import mark_safe
 from django.utils import datetime_safe
+from datetime import time
 from util import flatatt
 from urlparse import urljoin
 
 __all__ = (
     'Media', 'MediaDefiningClass', 'Widget', 'TextInput', 'PasswordInput',
     'HiddenInput', 'MultipleHiddenInput',
-    'FileInput', 'DateTimeInput', 'Textarea', 'CheckboxInput',
+    'FileInput', 'DateTimeInput', 'TimeInput', 'Textarea', 'CheckboxInput',
     'Select', 'NullBooleanSelect', 'SelectMultiple', 'RadioSelect',
-    'CheckboxSelectMultiple', 'MultiWidget', 'SplitDateTimeWidget',
+    'CheckboxSelectMultiple', 'MultiWidget',
+    'SplitDateTimeWidget',
 )
 
 MEDIA_TYPES = ('css','js')
@@ -35,36 +37,36 @@ class Media(StrAndUnicode):
             media_attrs = media.__dict__
         else:
             media_attrs = kwargs
-            
+
         self._css = {}
         self._js = []
-        
+
         for name in MEDIA_TYPES:
             getattr(self, 'add_' + name)(media_attrs.get(name, None))
 
         # Any leftover attributes must be invalid.
         # if media_attrs != {}:
         #     raise TypeError, "'class Media' has invalid attribute(s): %s" % ','.join(media_attrs.keys())
-        
+
     def __unicode__(self):
         return self.render()
-        
+
     def render(self):
         return mark_safe(u'\n'.join(chain(*[getattr(self, 'render_' + name)() for name in MEDIA_TYPES])))
-        
+
     def render_js(self):
         return [u'<script type="text/javascript" src="%s"></script>' % self.absolute_path(path) for path in self._js]
-        
+
     def render_css(self):
         # To keep rendering order consistent, we can't just iterate over items().
         # We need to sort the keys, and iterate over the sorted list.
         media = self._css.keys()
         media.sort()
         return chain(*[
-            [u'<link href="%s" type="text/css" media="%s" rel="stylesheet" />' % (self.absolute_path(path), medium) 
-                    for path in self._css[medium]] 
+            [u'<link href="%s" type="text/css" media="%s" rel="stylesheet" />' % (self.absolute_path(path), medium)
+                    for path in self._css[medium]]
                 for medium in media])
-        
+
     def absolute_path(self, path):
         if path.startswith(u'http://') or path.startswith(u'https://') or path.startswith(u'/'):
             return path
@@ -77,9 +79,9 @@ class Media(StrAndUnicode):
         raise KeyError('Unknown media type "%s"' % name)
 
     def add_js(self, data):
-        if data:    
+        if data:
             self._js.extend([path for path in data if path not in self._js])
-            
+
     def add_css(self, data):
         if data:
             for medium, paths in data.items():
@@ -99,8 +101,8 @@ def media_property(cls):
             base = super(cls, self).media
         else:
             base = Media()
-        
-        # Get the media definition for this class    
+
+        # Get the media definition for this class
         definition = getattr(cls, 'Media', None)
         if definition:
             extend = getattr(definition, 'extend', True)
@@ -117,16 +119,16 @@ def media_property(cls):
         else:
             return base
     return property(_media)
-    
+
 class MediaDefiningClass(type):
     "Metaclass for classes that can have media definitions"
-    def __new__(cls, name, bases, attrs):            
+    def __new__(cls, name, bases, attrs):
         new_class = super(MediaDefiningClass, cls).__new__(cls, name, bases,
                                                            attrs)
         if 'media' not in attrs:
             new_class.media = media_property(new_class)
         return new_class
-        
+
 class Widget(object):
     __metaclass__ = MediaDefiningClass
     is_hidden = False          # Determines whether this corresponds to an <input type="hidden">.
@@ -250,7 +252,7 @@ class MultipleHiddenInput(HiddenInput):
             for v in value]))
 
     def value_from_datadict(self, data, files, name):
-        if isinstance(data, MultiValueDict):
+        if isinstance(data, (MultiValueDict, MergeDict)):
             return data.getlist(name)
         return data.get(name, None)
 
@@ -264,7 +266,7 @@ class FileInput(Input):
     def value_from_datadict(self, data, files, name):
         "File widgets take data from FILES, not POST"
         return files.get(name, None)
-    
+
     def _has_changed(self, initial, data):
         if data is None:
             return False
@@ -300,6 +302,16 @@ class DateTimeInput(Input):
             value = datetime_safe.new_datetime(value)
             value = value.strftime(self.format)
         return super(DateTimeInput, self).render(name, value, attrs)
+
+class TimeInput(Input):
+    input_type = 'text'
+
+    def render(self, name, value, attrs=None):
+        if value is None:
+            value = ''
+        elif isinstance(value, time):
+            value = value.replace(microsecond=0)
+        return super(TimeInput, self).render(name, value, attrs)
 
 class CheckboxInput(Widget):
     def __init__(self, attrs=None, check_test=bool):
@@ -407,10 +419,10 @@ class SelectMultiple(Select):
         return mark_safe(u'\n'.join(output))
 
     def value_from_datadict(self, data, files, name):
-        if isinstance(data, MultiValueDict):
+        if isinstance(data, (MultiValueDict, MergeDict)):
             return data.getlist(name)
         return data.get(name, None)
-    
+
     def _has_changed(self, initial, data):
         if initial is None:
             initial = []
@@ -527,7 +539,7 @@ class CheckboxSelectMultiple(SelectMultiple):
                 label_for = u' for="%s"' % final_attrs['id']
             else:
                 label_for = ''
-                
+
             cb = CheckboxInput(final_attrs, check_test=lambda value: value in str_values)
             option_value = force_unicode(option_value)
             rendered_cb = cb.render(name, option_value)
@@ -601,12 +613,13 @@ class MultiWidget(Widget):
 
     def value_from_datadict(self, data, files, name):
         return [widget.value_from_datadict(data, files, name + '_%s' % i) for i, widget in enumerate(self.widgets)]
-    
+
     def _has_changed(self, initial, data):
         if initial is None:
             initial = [u'' for x in range(0, len(data))]
         else:
-            initial = self.decompress(initial)
+            if not isinstance(initial, list):
+                initial = self.decompress(initial)
         for widget, initial, data in zip(self.widgets, initial, data):
             if widget._has_changed(initial, data):
                 return True
@@ -637,7 +650,7 @@ class MultiWidget(Widget):
             media = media + w.media
         return media
     media = property(_get_media)
-    
+
 class SplitDateTimeWidget(MultiWidget):
     """
     A Widget that splits datetime input into two <input type="text"> boxes.
@@ -650,4 +663,12 @@ class SplitDateTimeWidget(MultiWidget):
         if value:
             return [value.date(), value.time().replace(microsecond=0)]
         return [None, None]
+
+class SplitHiddenDateTimeWidget(SplitDateTimeWidget):
+    """
+    A Widget that splits datetime input into two <input type="hidden"> inputs.
+    """
+    def __init__(self, attrs=None):
+        widgets = (HiddenInput(attrs=attrs), HiddenInput(attrs=attrs))
+        super(SplitDateTimeWidget, self).__init__(widgets, attrs)
 

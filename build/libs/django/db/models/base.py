@@ -8,9 +8,7 @@ try:
 except NameError:
     from sets import Set as set     # Python 2.3 fallback.
 
-import django.db.models.manipulators    # Imported to register signal handler.
-import django.db.models.manager         # Ditto.
-from django.core import validators
+import django.db.models.manager     # Imported to register signal handler.
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, FieldError
 from django.db.models.fields import AutoField
 from django.db.models.fields.related import OneToOneRel, ManyToOneRel, OneToOneField
@@ -21,8 +19,6 @@ from django.db.models import signals
 from django.db.models.loading import register_models, get_model
 from django.utils.functional import curry
 from django.utils.encoding import smart_str, force_unicode, smart_unicode
-from django.core.files.move import file_move_safe
-from django.core.files import locks
 from django.conf import settings
 
 
@@ -71,11 +67,7 @@ class ModelBase(type):
                 if not hasattr(meta, 'get_latest_by'):
                     new_class._meta.get_latest_by = base_meta.get_latest_by
 
-        old_default_mgr = None
         if getattr(new_class, '_default_manager', None):
-            # We have a parent who set the default manager.
-            if new_class._default_manager.model._meta.abstract:
-                old_default_mgr = new_class._default_manager
             new_class._default_manager = None
 
         # Bail out early if we have already created this class.
@@ -95,7 +87,15 @@ class ModelBase(type):
                 # Things without _meta aren't functional models, so they're
                 # uninteresting parents.
                 continue
+
+            # All the fields of any type declared on this model
+            new_fields = new_class._meta.local_fields + \
+                         new_class._meta.local_many_to_many + \
+                         new_class._meta.virtual_fields
+            field_names = set([f.name for f in new_fields])
+
             if not base._meta.abstract:
+                # Concrete classes...
                 if base in o2o_map:
                     field = o2o_map[base]
                     field.primary_key = True
@@ -106,14 +106,41 @@ class ModelBase(type):
                             auto_created=True, parent_link=True)
                     new_class.add_to_class(attr_name, field)
                 new_class._meta.parents[base] = field
+
             else:
-                # The abstract base class case.
-                names = set([f.name for f in new_class._meta.local_fields + new_class._meta.many_to_many])
-                for field in base._meta.local_fields + base._meta.local_many_to_many:
-                    if field.name in names:
-                        raise FieldError('Local field %r in class %r clashes with field of similar name from abstract base class %r'
-                                % (field.name, name, base.__name__))
+                # .. and abstract ones.
+
+                # Check for clashes between locally declared fields and those
+                # on the ABC.
+                parent_fields = base._meta.local_fields + base._meta.local_many_to_many
+                for field in parent_fields:
+                    if field.name in field_names:
+                        raise FieldError('Local field %r in class %r clashes '\
+                                         'with field of similar name from '\
+                                         'abstract base class %r' % \
+                                            (field.name, name, base.__name__))
                     new_class.add_to_class(field.name, copy.deepcopy(field))
+
+                # Pass any non-abstract parent classes onto child.
+                new_class._meta.parents.update(base._meta.parents)
+
+            # Inherit managers from the abstract base classes.
+            base_managers = base._meta.abstract_managers
+            base_managers.sort()
+            for _, mgr_name, manager in base_managers:
+                val = getattr(new_class, mgr_name, None)
+                if not val or val is manager:
+                    new_manager = manager._copy_to_model(new_class)
+                    new_class.add_to_class(mgr_name, new_manager)
+
+            # Inherit virtual fields (like GenericForeignKey) from the parent class
+            for field in base._meta.virtual_fields:
+                if base._meta.abstract and field.name in field_names:
+                    raise FieldError('Local field %r in class %r clashes '\
+                                     'with field of similar name from '\
+                                     'abstract base class %r' % \
+                                        (field.name, name, base.__name__))
+                new_class.add_to_class(field.name, copy.deepcopy(field))
 
         if abstract:
             # Abstract base models can't be instantiated and don't appear in
@@ -123,8 +150,6 @@ class ModelBase(type):
             new_class.Meta = attr_meta
             return new_class
 
-        if old_default_mgr and not new_class._default_manager:
-            new_class._default_manager = old_default_mgr._copy_to_model(new_class)
         new_class._prepare()
         register_models(new_class._meta.app_label, new_class)
 
@@ -320,9 +345,7 @@ class Model(object):
 
         # First, try an UPDATE. If that doesn't update anything, do an INSERT.
         pk_val = self._get_pk_val(meta)
-        # Note: the comparison with '' is required for compatibility with
-        # oldforms-style model creation.
-        pk_set = pk_val is not None and smart_unicode(pk_val) != u''
+        pk_set = pk_val is not None
         record_exists = True
         manager = cls._default_manager
         if pk_set:

@@ -71,6 +71,9 @@ class BaseDatabaseFeatures(object):
     interprets_empty_strings_as_nulls = False
     can_use_chunked_reads = True
     uses_savepoints = False
+    # If True, don't use integer foreign keys referring to, e.g., positive
+    # integer primary keys.
+    related_fields_match_type = False
 
 class BaseDatabaseOperations(object):
     """
@@ -300,6 +303,10 @@ class BaseDatabaseOperations(object):
         """Prepares a value for use in a LIKE query."""
         from django.utils.encoding import smart_unicode
         return smart_unicode(x).replace("\\", "\\\\").replace("%", "\%").replace("_", "\_")
+
+    # Same as prep_for_like_query(), but called for "iexact" matches, which
+    # need not necessarily be implemented using "LIKE" in the backend.
+    prep_for_iexact_query = prep_for_like_query
 
     def value_to_db_date(self, value):
         """

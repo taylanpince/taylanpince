@@ -244,7 +244,9 @@ def get_language_bidi():
     True = right-to-left layout
     """
     from django.conf import settings
-    return get_language() in settings.LANGUAGES_BIDI
+    
+    base_lang = get_language().split('-')[0]
+    return base_lang in settings.LANGUAGES_BIDI
 
 def catalog():
     """
@@ -381,13 +383,13 @@ def get_language_from_request(request):
 
         for lang, dirname in ((accept_lang, normalized),
                 (accept_lang.split('-')[0], normalized.split('_')[0])):
-            if lang not in supported:
+            if lang.lower() not in supported:
                 continue
             langfile = os.path.join(globalpath, dirname, 'LC_MESSAGES',
                     'django.mo')
             if os.path.exists(langfile):
                 _accepted[normalized] = lang
-            return lang
+                return lang
 
     return settings.LANGUAGE_CODE
 

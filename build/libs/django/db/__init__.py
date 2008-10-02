@@ -24,7 +24,10 @@ except ImportError, e:
         # The database backend wasn't found. Display a helpful error message
         # listing all possible (built-in) database backends.
         backend_dir = os.path.join(__path__[0], 'backends')
-        available_backends = [f for f in os.listdir(backend_dir) if not f.startswith('_') and not f.startswith('.') and not f.endswith('.py') and not f.endswith('.pyc')]
+        try:
+            available_backends = [f for f in os.listdir(backend_dir) if not f.startswith('_') and not f.startswith('.') and not f.endswith('.py') and not f.endswith('.pyc')]
+        except EnvironmentError:
+            available_backends = []
         available_backends.sort()
         if settings.DATABASE_ENGINE not in available_backends:
             raise ImproperlyConfigured, "%r isn't an available database backend. Available options are: %s\nError was: %s" % \
@@ -53,5 +56,8 @@ signals.request_started.connect(reset_queries)
 # when a Django request has an exception.
 def _rollback_on_exception(**kwargs):
     from django.db import transaction
-    transaction.rollback_unless_managed()
+    try:
+        transaction.rollback_unless_managed()
+    except DatabaseError:
+        pass
 signals.got_request_exception.connect(_rollback_on_exception)

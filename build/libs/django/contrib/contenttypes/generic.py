@@ -2,18 +2,16 @@
 Classes allowing "generic" relations through ContentType and object-id fields.
 """
 
-from django import oldforms
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connection
 from django.db.models import signals
 from django.db import models
 from django.db.models.fields.related import RelatedField, Field, ManyToManyRel
 from django.db.models.loading import get_model
-from django.utils.functional import curry
-
 from django.forms import ModelForm
 from django.forms.models import BaseModelFormSet, modelformset_factory, save_instance
 from django.contrib.admin.options import InlineModelAdmin, flatten_fieldsets
+from django.utils.encoding import smart_unicode
 
 class GenericForeignKey(object):
     """
@@ -26,11 +24,10 @@ class GenericForeignKey(object):
         self.fk_field = fk_field
 
     def contribute_to_class(self, cls, name):
-        # Make sure the fields exist (these raise FieldDoesNotExist,
-        # which is a fine error to raise here)
         self.name = name
         self.model = cls
         self.cache_attr = "_%s_cache" % name
+        cls._meta.add_virtual_field(self)
 
         # For some reason I don't totally understand, using weakrefs here doesn't work.
         signals.pre_init.connect(self.instance_pre_init, sender=cls, weak=False)
@@ -120,19 +117,12 @@ class GenericRelation(RelatedField, Field):
         kwargs['serialize'] = False
         Field.__init__(self, **kwargs)
 
-    def get_manipulator_field_objs(self):
-        choices = self.get_choices_default()
-        return [curry(oldforms.SelectMultipleField, size=min(max(len(choices), 5), 15), choices=choices)]
-
     def get_choices_default(self):
         return Field.get_choices(self, include_blank=False)
 
-    def flatten_data(self, follow, obj = None):
-        new_data = {}
-        if obj:
-            instance_ids = [instance._get_pk_val() for instance in getattr(obj, self.name).all()]
-            new_data[self.name] = instance_ids
-        return new_data
+    def value_to_string(self, obj):
+        qs = getattr(obj, self.name).all()
+        return smart_unicode([instance._get_pk_val() for instance in qs])
 
     def m2m_db_table(self):
         return self.rel.to._meta.db_table
@@ -165,6 +155,19 @@ class GenericRelation(RelatedField, Field):
         # Since we're simulating a ManyToManyField, in effect, best return the
         # same db_type as well.
         return None
+
+    def extra_filters(self, pieces, pos, negate):
+        """
+        Return an extra filter to the queryset so that the results are filtered
+        on the appropriate content type.
+        """
+        if negate:
+            return []
+        ContentType = get_model("contenttypes", "contenttype")
+        content_type = ContentType.objects.get_for_model(self.model)
+        prefix = "__".join(pieces[:pos + 1])
+        return [("%s__%s" % (prefix, self.content_type_field_name),
+            content_type)]
 
 class ReverseGenericRelatedObjectsDescriptor(object):
     """
@@ -268,9 +271,7 @@ def create_generic_related_manager(superclass):
         def create(self, **kwargs):
             kwargs[self.content_type_field_name] = self.content_type
             kwargs[self.object_id_field_name] = self.pk_val
-            obj = self.model(**kwargs)
-            obj.save()
-            return obj
+            return super(GenericRelatedObjectManager, self).create(**kwargs)
         create.alters_data = True
 
     return GenericRelatedObjectManager
@@ -280,7 +281,6 @@ class GenericRel(ManyToManyRel):
         self.to = to
         self.related_name = related_name
         self.limit_choices_to = limit_choices_to or {}
-        self.edit_inline = False
         self.symmetrical = symmetrical
         self.multiple = True
 
@@ -290,7 +290,7 @@ class BaseGenericInlineFormSet(BaseModelFormSet):
     """
     ct_field_name = "content_type"
     ct_fk_field_name = "object_id"
-    
+
     def __init__(self, data=None, files=None, instance=None, save_as_new=None):
         opts = self.model._meta
         self.instance = instance
@@ -385,4 +385,3 @@ class GenericStackedInline(GenericInlineModelAdmin):
 
 class GenericTabularInline(GenericInlineModelAdmin):
     template = 'admin/edit_inline/tabular.html'
-

@@ -6,12 +6,6 @@ Requires MySQLdb: http://sourceforge.net/projects/mysql-python
 
 import re
 
-from django.db.backends import *
-from django.db.backends.mysql.client import DatabaseClient
-from django.db.backends.mysql.creation import DatabaseCreation
-from django.db.backends.mysql.introspection import DatabaseIntrospection
-from django.db.backends.mysql.validation import DatabaseValidation
-
 try:
     import MySQLdb as Database
 except ImportError, e:
@@ -29,6 +23,12 @@ if (version < (1,2,1) or (version[:3] == (1, 2, 1) and
 
 from MySQLdb.converters import conversions
 from MySQLdb.constants import FIELD_TYPE, FLAG
+
+from django.db.backends import *
+from django.db.backends.mysql.client import DatabaseClient
+from django.db.backends.mysql.creation import DatabaseCreation
+from django.db.backends.mysql.introspection import DatabaseIntrospection
+from django.db.backends.mysql.validation import DatabaseValidation
 
 # Raise exceptions for database warnings if DEBUG is on
 from django.conf import settings
@@ -65,9 +65,52 @@ server_version_re = re.compile(r'(\d{1,2})\.(\d{1,2})\.(\d{1,2})')
 # standard util.CursorDebugWrapper can be used. Also, using sql_mode
 # TRADITIONAL will automatically cause most warnings to be treated as errors.
 
+class CursorWrapper(object):
+    """
+    A thin wrapper around MySQLdb's normal cursor class so that we can catch
+    particular exception instances and reraise them with the right types.
+
+    Implemented as a wrapper, rather than a subclass, so that we aren't stuck
+    to the particular underlying representation returned by Connection.cursor().
+    """
+    codes_for_integrityerror = (1048,)
+
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def execute(self, query, args=None):
+        try:
+            return self.cursor.execute(query, args)
+        except Database.OperationalError, e:
+            # Map some error codes to IntegrityError, since they seem to be
+            # misclassified and Django would prefer the more logical place.
+            if e[0] in self.codes_for_integrityerror:
+                raise Database.IntegrityError(tuple(e))
+            raise
+
+    def executemany(self, query, args):
+        try:
+            return self.cursor.executemany(query, args)
+        except Database.OperationalError, e:
+            # Map some error codes to IntegrityError, since they seem to be
+            # misclassified and Django would prefer the more logical place.
+            if e[0] in self.codes_for_integrityerror:
+                raise Database.IntegrityError(tuple(e))
+            raise
+
+    def __getattr__(self, attr):
+        if attr in self.__dict__:
+            return self.__dict__[attr]
+        else:
+            return getattr(self.cursor, attr)
+
+    def __iter__(self):
+        return iter(self.cursor)
+
 class DatabaseFeatures(BaseDatabaseFeatures):
     empty_fetchmany_value = ()
     update_can_self_select = False
+    related_fields_match_type = True
 
 class DatabaseOperations(BaseDatabaseOperations):
     def date_extract_sql(self, lookup_type, field_name):
@@ -129,15 +172,25 @@ class DatabaseOperations(BaseDatabaseOperations):
             return []
 
     def value_to_db_datetime(self, value):
-        # MySQL doesn't support microseconds
         if value is None:
             return None
+        
+        # MySQL doesn't support tz-aware datetimes
+        if value.tzinfo is not None:
+            raise ValueError("MySQL backend does not support timezone-aware datetimes.")
+
+        # MySQL doesn't support microseconds
         return unicode(value.replace(microsecond=0))
 
     def value_to_db_time(self, value):
-        # MySQL doesn't support microseconds
         if value is None:
             return None
+            
+        # MySQL doesn't support tz-aware datetimes
+        if value.tzinfo is not None:
+            raise ValueError("MySQL backend does not support timezone-aware datetimes.")
+        
+        # MySQL doesn't support microseconds
         return unicode(value.replace(microsecond=0))
 
     def year_lookup_bounds(self, value):
@@ -207,7 +260,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                 kwargs['port'] = int(settings.DATABASE_PORT)
             kwargs.update(self.options)
             self.connection = Database.connect(**kwargs)
-        cursor = self.connection.cursor()
+        cursor = CursorWrapper(self.connection.cursor())
         return cursor
 
     def _rollback(self):

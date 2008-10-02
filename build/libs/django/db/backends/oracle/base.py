@@ -8,13 +8,6 @@ import os
 import datetime
 import time
 
-from django.db.backends import *
-from django.db.backends.oracle import query
-from django.db.backends.oracle.client import DatabaseClient
-from django.db.backends.oracle.creation import DatabaseCreation
-from django.db.backends.oracle.introspection import DatabaseIntrospection
-from django.utils.encoding import smart_str, force_unicode
-
 # Oracle takes client-side character set encoding from the environment.
 os.environ['NLS_LANG'] = '.UTF8'
 try:
@@ -23,14 +16,23 @@ except ImportError, e:
     from django.core.exceptions import ImproperlyConfigured
     raise ImproperlyConfigured("Error loading cx_Oracle module: %s" % e)
 
-DatabaseError = Database.Error
+from django.db.backends import *
+from django.db.backends.oracle import query
+from django.db.backends.oracle.client import DatabaseClient
+from django.db.backends.oracle.creation import DatabaseCreation
+from django.db.backends.oracle.introspection import DatabaseIntrospection
+from django.utils.encoding import smart_str, force_unicode
+
+DatabaseError = Database.DatabaseError
 IntegrityError = Database.IntegrityError
+
 
 class DatabaseFeatures(BaseDatabaseFeatures):
     empty_fetchmany_value = ()
     needs_datetime_string_cast = False
     uses_custom_query_class = True
     interprets_empty_strings_as_nulls = True
+
 
 class DatabaseOperations(BaseDatabaseOperations):
     def autoinc_sql(self, table, column):
@@ -40,7 +42,17 @@ class DatabaseOperations(BaseDatabaseOperations):
         tr_name = get_trigger_name(table)
         tbl_name = self.quote_name(table)
         col_name = self.quote_name(column)
-        sequence_sql = 'CREATE SEQUENCE %s;' % sq_name
+        sequence_sql = """
+            DECLARE
+                i INTEGER;
+            BEGIN
+                SELECT COUNT(*) INTO i FROM USER_CATALOG
+                    WHERE TABLE_NAME = '%(sq_name)s' AND TABLE_TYPE = 'SEQUENCE';
+                IF i = 0 THEN
+                    EXECUTE IMMEDIATE 'CREATE SEQUENCE %(sq_name)s';
+                END IF;
+            END;
+            /""" % locals()
         trigger_sql = """
             CREATE OR REPLACE TRIGGER %(tr_name)s
             BEFORE INSERT ON %(tbl_name)s
@@ -93,6 +105,9 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def max_name_length(self):
         return 30
+
+    def prep_for_iexact_query(self, x):
+        return x
 
     def query_class(self, DefaultQueryClass):
         return query.query_class(DefaultQueryClass, Database)
@@ -195,7 +210,7 @@ class DatabaseOperations(BaseDatabaseOperations):
 
 
 class DatabaseWrapper(BaseDatabaseWrapper):
-    
+
     operators = {
         'exact': '= %s',
         'iexact': '= UPPER(%s)',
@@ -212,7 +227,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
     oracle_version = None
 
-    def __init__(self, *args, **kwargs):        
+    def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
         self.features = DatabaseFeatures()
@@ -265,6 +280,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cursor.arraysize = 100
         return cursor
 
+
 class OracleParam(object):
     """
     Wrapper object for formatting parameters for Oracle. If the string
@@ -284,6 +300,7 @@ class OracleParam(object):
             self.input_size = Database.NCLOB
         else:
             self.input_size = None
+
 
 class FormatStylePlaceholderCursor(Database.Cursor):
     """
@@ -340,7 +357,13 @@ class FormatStylePlaceholderCursor(Database.Cursor):
             query = query[:-1]
         query = smart_str(query, self.charset) % tuple(args)
         self._guess_input_sizes([params])
-        return Database.Cursor.execute(self, query, self._param_generator(params))
+        try:
+            return Database.Cursor.execute(self, query, self._param_generator(params))
+        except DatabaseError, e:
+            # cx_Oracle <= 4.4.0 wrongly raises a DatabaseError for ORA-01400.
+            if e.message.code == 1400 and type(e) != IntegrityError:
+                e = IntegrityError(e.message)
+            raise e
 
     def executemany(self, query, params=None):
         try:
@@ -357,7 +380,13 @@ class FormatStylePlaceholderCursor(Database.Cursor):
         query = smart_str(query, self.charset) % tuple(args)
         formatted = [self._format_params(i) for i in params]
         self._guess_input_sizes(formatted)
-        return Database.Cursor.executemany(self, query, [self._param_generator(p) for p in formatted])
+        try:
+            return Database.Cursor.executemany(self, query, [self._param_generator(p) for p in formatted])
+        except DatabaseError, e:
+            # cx_Oracle <= 4.4.0 wrongly raises a DatabaseError for ORA-01400.
+            if e.message.code == 1400 and type(e) != IntegrityError:
+                e = IntegrityError(e.message)
+            raise e
 
     def fetchone(self):
         row = Database.Cursor.fetchone(self)

@@ -24,6 +24,7 @@ ORDER_VAR = 'o'
 ORDER_TYPE_VAR = 'ot'
 PAGE_VAR = 'p'
 SEARCH_VAR = 'q'
+TO_FIELD_VAR = 't'
 IS_POPUP_VAR = 'pop'
 ERROR_FLAG = 'e'
 
@@ -52,9 +53,12 @@ class ChangeList(object):
             self.page_num = 0
         self.show_all = ALL_VAR in request.GET
         self.is_popup = IS_POPUP_VAR in request.GET
+        self.to_field = request.GET.get(TO_FIELD_VAR)
         self.params = dict(request.GET.items())
         if PAGE_VAR in self.params:
             del self.params[PAGE_VAR]
+        if TO_FIELD_VAR in self.params:
+            del self.params[TO_FIELD_VAR]
         if ERROR_FLAG in self.params:
             del self.params[ERROR_FLAG]
 
@@ -68,7 +72,7 @@ class ChangeList(object):
 
     def get_filters(self, request):
         filter_specs = []
-        if self.list_filter and not self.opts.one_to_one_field:
+        if self.list_filter:
             filter_fields = [self.lookup_opts.get_field(field_name) for field_name in self.list_filter]
             for f in filter_fields:
                 spec = FilterSpec.create(f, request, self.params, self.model, self.model_admin)
@@ -178,6 +182,10 @@ class ChangeList(object):
                 # requires it to be a string.
                 del lookup_params[key]
                 lookup_params[smart_str(key)] = value
+
+            # if key ends with __in, split parameter into separate values
+            if key.endswith('__in'):
+                lookup_params[key] = value.split(',')
 
         # Apply lookup parameters from the query string.
         qs = qs.filter(**lookup_params)

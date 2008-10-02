@@ -1,4 +1,5 @@
 import os
+import re
 from Cookie import SimpleCookie, CookieError
 from pprint import pformat
 from urllib import urlencode
@@ -17,6 +18,8 @@ from django.core.files import uploadhandler
 from utils import *
 
 RESERVED_CHARS="!*'();:@&=+$,/?%#[]"
+
+absolute_http_url_re = re.compile(r"^https?://", re.I)
 
 class Http404(Exception):
     pass
@@ -49,8 +52,8 @@ class HttpRequest(object):
         else:
             # Reconstruct the host using the algorithm from PEP 333.
             host = self.META['SERVER_NAME']
-            server_port = self.META['SERVER_PORT']
-            if server_port != (self.is_secure() and 443 or 80):
+            server_port = str(self.META['SERVER_PORT'])
+            if server_port != (self.is_secure() and '443' or '80'):
                 host = '%s:%s' % (host, server_port)
         return host
 
@@ -65,7 +68,7 @@ class HttpRequest(object):
         """
         if not location:
             location = self.get_full_path()
-        if not ':' in location:
+        if not absolute_http_url_re.match(location):
             current_uri = '%s://%s%s' % (self.is_secure() and 'https' or 'http',
                                          self.get_host(), self.path)
             location = urljoin(current_uri, location)
@@ -128,6 +131,11 @@ class QueryDict(MultiValueDict):
     Values retrieved from this class are converted from the given encoding
     (DEFAULT_CHARSET by default) to unicode.
     """
+    # These are both reset in __init__, but is specified here at the class
+    # level so that unpickling will have valid values
+    _mutable = True
+    _encoding = None
+
     def __init__(self, query_string, mutable=False, encoding=None):
         MultiValueDict.__init__(self)
         if not encoding:
@@ -136,11 +144,23 @@ class QueryDict(MultiValueDict):
             from django.conf import settings
             encoding = settings.DEFAULT_CHARSET
         self.encoding = encoding
-        self._mutable = True
         for key, value in parse_qsl((query_string or ''), True): # keep_blank_values=True
             self.appendlist(force_unicode(key, encoding, errors='replace'),
                             force_unicode(value, encoding, errors='replace'))
         self._mutable = mutable
+
+    def _get_encoding(self):
+        if self._encoding is None:
+            # *Important*: do not import settings at the module level because
+            # of the note in core.handlers.modpython.
+            from django.conf import settings
+            self._encoding = settings.DEFAULT_CHARSET
+        return self._encoding
+
+    def _set_encoding(self, value):
+        self._encoding = value
+
+    encoding = property(_get_encoding, _set_encoding)
 
     def _assert_mutable(self):
         if not self._mutable:
@@ -191,8 +211,13 @@ class QueryDict(MultiValueDict):
     def update(self, other_dict):
         self._assert_mutable()
         f = lambda s: str_to_unicode(s, self.encoding)
-        d = dict([(f(k), f(v)) for k, v in other_dict.items()])
-        MultiValueDict.update(self, d)
+        if hasattr(other_dict, 'lists'):
+            for key, valuelist in other_dict.lists():
+                for value in valuelist:
+                    MultiValueDict.update(self, {f(key): f(value)})
+        else:
+            d = dict([(f(k), f(v)) for k, v in other_dict.items()])
+            MultiValueDict.update(self, d)
 
     def pop(self, key, *args):
         self._assert_mutable()

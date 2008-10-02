@@ -43,6 +43,18 @@ def unquote(s):
             myappend('_' + item)
     return "".join(res)
 
+def flatten_fieldsets(fieldsets):
+    """Returns a list of field names from an admin fieldsets structure."""
+    field_names = []
+    for name, opts in fieldsets:
+        for field in opts['fields']:
+            # type checking feels dirty, but it seems like the best way here
+            if type(field) == tuple:
+                field_names.extend(field)
+            else:
+                field_names.append(field)
+    return field_names
+
 def _nest_help(obj, depth, val):
     current = obj
     for i in range(depth):
@@ -73,10 +85,10 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
                         perms_needed.add(related.opts.verbose_name)
                         # We don't care about populating deleted_objects now.
                         continue
-                if related.field.rel.edit_inline or not has_admin:
+                if not has_admin:
                     # Don't display link to edit, because it either has no
                     # admin or is edited inline.
-                    nh(deleted_objects, current_depth, [mark_safe(u'%s: %s' % (force_unicode(capfirst(related.opts.verbose_name)), sub_obj)), []])
+                    nh(deleted_objects, current_depth, [u'%s: %s' % (force_unicode(capfirst(related.opts.verbose_name)), sub_obj), []])
                 else:
                     # Display a link to the admin page.
                     nh(deleted_objects, current_depth, [mark_safe(u'%s: <a href="../../../../%s/%s/%s/">%s</a>' %
@@ -89,10 +101,10 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
             has_related_objs = False
             for sub_obj in getattr(obj, rel_opts_name).all():
                 has_related_objs = True
-                if related.field.rel.edit_inline or not has_admin:
+                if not has_admin:
                     # Don't display link to edit, because it either has no
                     # admin or is edited inline.
-                    nh(deleted_objects, current_depth, [u'%s: %s' % (force_unicode(capfirst(related.opts.verbose_name)), escape(sub_obj)), []])
+                    nh(deleted_objects, current_depth, [u'%s: %s' % (force_unicode(capfirst(related.opts.verbose_name)), sub_obj), []])
                 else:
                     # Display a link to the admin page.
                     nh(deleted_objects, current_depth, [mark_safe(u'%s: <a href="../../../../%s/%s/%s/">%s</a>' % \
@@ -120,7 +132,7 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
 
         if has_related_objs:
             for sub_obj in rel_objs.all():
-                if related.field.rel.edit_inline or not has_admin:
+                if not has_admin:
                     # Don't display link to edit, because it either has no
                     # admin or is edited inline.
                     nh(deleted_objects, current_depth, [_('One or more %(fieldname)s in %(name)s: %(obj)s') % \

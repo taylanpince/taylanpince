@@ -30,7 +30,7 @@ class UserCreationForm(forms.ModelForm):
         raise forms.ValidationError(_("A user with that username already exists."))
 
     def clean_password2(self):
-        password1 = self.cleaned_data["password1"]
+        password1 = self.cleaned_data.get("password1", "")
         password2 = self.cleaned_data["password2"]
         if password1 != password2:
             raise forms.ValidationError(_("The two password fields didn't match."))
@@ -42,6 +42,14 @@ class UserCreationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+class UserChangeForm(forms.ModelForm):
+    username = forms.RegexField(label=_("Username"), max_length=30, regex=r'^\w+$',
+        help_text = _("Required. 30 characters or fewer. Alphanumeric characters only (letters, digits and underscores)."),
+        error_message = _("This value must contain only letters, numbers and underscores."))
+    
+    class Meta:
+        model = User
 
 class AuthenticationForm(forms.Form):
     """

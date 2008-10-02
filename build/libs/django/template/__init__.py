@@ -197,7 +197,19 @@ class Token(object):
             self.contents[:20].replace('\n', ''))
 
     def split_contents(self):
-        return list(smart_split(self.contents))
+        split = []
+        bits = iter(smart_split(self.contents))
+        for bit in bits:
+            # Handle translation-marked template pieces
+            if bit.startswith('_("') or bit.startswith("_('"):
+                sentinal = bit[2] + ')'
+                trans_bit = [bit]
+                while not bit.endswith(sentinal):
+                    bit = bits.next()
+                    trans_bit.append(bit)
+                bit = ' '.join(trans_bit)
+            split.append(bit)
+        return split
 
 class Lexer(object):
     def __init__(self, template_string, origin):
@@ -485,9 +497,14 @@ class FilterExpression(object):
                                            (token[:upto], token[upto:start], token[start:]))
             if var == None:
                 var, constant, i18n_constant = match.group("var", "constant", "i18n_constant")
-                if i18n_constant:
-                    var = '"%s"' %  _(i18n_constant.replace(r'\"', '"'))
-                elif constant:
+                if i18n_constant is not None:
+                    # Don't pass the empty string to gettext, because the empty
+                    # string translates to meta information.
+                    if i18n_constant == "":
+                        var = '""'
+                    else:
+                        var = '"%s"' %  _(i18n_constant.replace(r'\"', '"'))
+                elif constant is not None:
                     var = '"%s"' % constant.replace(r'\"', '"')
                 upto = match.end()
                 if var == None:
