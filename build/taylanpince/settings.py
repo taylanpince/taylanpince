@@ -35,6 +35,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.doc.XViewMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
 
 ROOT_URLCONF = 'taylanpince.urls'
@@ -52,6 +53,7 @@ INSTALLED_APPS = (
     
     'django_evolution',
     'django_extensions',
+    'debug_toolbar',
     'sorl.thumbnail',
 )
 
