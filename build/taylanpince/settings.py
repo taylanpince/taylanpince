@@ -50,6 +50,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.admin',
     
+    'django_evolution',
     'django_extensions',
     'sorl.thumbnail',
 )
