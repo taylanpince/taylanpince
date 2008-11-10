@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant Application Form{% endblock %}
+
+{% block content %}
+
+{% if form.errors %}
+<p>There were some errors in your application, please review the messages below.</p>
+{% endif %}
+
+<form id="TenantApplicationForm" method="post" action="{% url application_form %}">
+    <h2>Contact Information</h2>
+    <ul>
+        <li>
+            {% if form.first_name.errors %}<p class="error">{{ form.first_name.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.first_name.label_tag }}
+            {{ form.first_name }}
+        </li>
+        <li>
+            {% if form.last_name.errors %}<p class="error">{{ form.last_name.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.last_name.label_tag }}
+            {{ form.last_name }}
+        </li>
+        <li>
+            {% if form.phone.errors %}<p class="error">{{ form.phone.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.phone.label_tag }}
+            {{ form.phone }}
+            {% if form.phone.help_text %}<p class="help">{{ form.phone.help_text }}</p>{% endif %}
+        </li>
+        <li>
+            {% if form.email.errors %}<p class="error">{{ form.email.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.email.label_tag }}
+            {{ form.email }}
+        </li>
+    </ul>
+    
+    <h2>Personal Details</h2>
+    <ul>
+        <li>
+            {% if form.income.errors %}<p class="error">{{ form.income.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.income.label_tag }}
+            {{ form.income }}
+        </li>
+        <li>
+            {% if form.pets.errors %}<p class="error">{{ form.pets.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.pets.label_tag }}
+            {{ form.pets }}
+        </li>
+        <li>
+            {% if form.smokers.errors %}<p class="error">{{ form.smokers.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.smokers.label_tag }}
+            {{ form.smokers }}
+        </li>
+    </ul>
+    
+    <h2>Current Residence</h2>
+    <ul>
+        <li>
+            {% if form.landlord_name.errors %}<p class="error">{{ form.landlord_name.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.landlord_name.label_tag }}
+            {{ form.landlord_name }}
+        </li>
+        <li>
+            {% if form.landlord_phone.errors %}<p class="error">{{ form.landlord_phone.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.landlord_phone.label_tag }}
+            {{ form.landlord_phone }}
+        </li>
+        <li class="date date-required">
+            {% if form.tenancy_start_date.errors %}<p class="error">{{ form.tenancy_start_date.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.tenancy_start_date.label_tag }}
+            {{ form.tenancy_start_date }}
+            <p class="help">{{ form.tenancy_start_date.help_text }}</p>
+        </li>
+    </ul>
+    
+    <h2>Previous Residence</h2>
+    <ul>
+        <li>
+            {% if form.prev_landlord_name.errors %}<p class="error">{{ form.prev_landlord_name.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.prev_landlord_name.label_tag }}
+            {{ form.prev_landlord_name }}
+        </li>
+        <li>
+            {% if form.prev_landlord_phone.errors %}<p class="error">{{ form.prev_landlord_phone.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.prev_landlord_phone.label_tag }}
+            {{ form.prev_landlord_phone }}
+        </li>
+        <li class="date">
+            {% if form.prev_tenancy_start_date.errors %}<p class="error">{{ form.prev_tenancy_start_date.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.prev_tenancy_start_date.label_tag }}
+            {{ form.prev_tenancy_start_date }}
+            <p class="help">{{ form.prev_tenancy_start_date.help_text }}</p>
+        </li>
+    </ul>
+    
+    <h2>Employment</h2>
+    <ul>
+        <li>
+            {% if form.employer.errors %}<p class="error">{{ form.employer.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.employer.label_tag }}
+            {{ form.employer }}
+        </li>
+        <li>
+            {% if form.employer_reference_name.errors %}<p class="error">{{ form.employer_reference_name.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.employer_reference_name.label_tag }}
+            {{ form.employer_reference_name }}
+        </li>
+        <li>
+            {% if form.employer_reference_phone.errors %}<p class="error">{{ form.employer_reference_phone.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.employer_reference_phone.label_tag }}
+            {{ form.employer_reference_phone }}
+        </li>
+        <li class="date date-required">
+            {% if form.employment_start_date.errors %}<p class="error">{{ form.employment_start_date.errors|join:"<br />" }}</p>{% endif %}
+            {{ form.employment_start_date.label_tag }}
+            {{ form.employment_start_date }}
+            <p class="help">{{ form.employment_start_date.help_text }}</p>
+        </li>
+        <li class="padded">
+            <input type="submit" value="Submit" /> 
+        </li>
+    </ul>
+</form>
+
+{% endblock %}

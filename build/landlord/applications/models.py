@@ -9,8 +9,8 @@ class TenantApplication(models.Model):
     """
     
     BOOLEAN_CHOICES = (
-        (False, _("No")),
-        (True, _("Yes")),
+        (0, _("No")),
+        (1, _("Yes")),
     )
     
     # Contact Information
@@ -25,16 +25,16 @@ class TenantApplication(models.Model):
     # Current Residence
     landlord_name = models.CharField(_("Landlord's Name"), max_length=150)
     landlord_phone = models.CharField(_("Landlord's Phone Number"), max_length=20)
-    tenancy_start_date = models.DateField(_("Tenancy Start Date"))
+    tenancy_start_date = models.DateField(_("Tenancy Start Date"), help_text=_("In YYYY-MM-DD format."))
     # Previous Residence
     prev_landlord_name = models.CharField(_("Landlord's Name"), max_length=150, blank=True)
     prev_landlord_phone = models.CharField(_("Landlord's Phone Number"), max_length=20, blank=True)
-    prev_tenancy_start_date = models.DateField(_("Tenancy Start Date"), blank=True, null=True)
+    prev_tenancy_start_date = models.DateField(_("Tenancy Start Date"), blank=True, null=True, help_text=_("In YYYY-MM-DD format."))
     # Employment
     employer = models.CharField(_("Employer"), max_length=100)
     employer_reference_name = models.CharField(_("Reference's Name"), max_length=150)
     employer_reference_phone = models.CharField(_("Reference's Phone Number"), max_length=20)
-    employment_start_date = models.DateField(_("Employment Start Date"))
+    employment_start_date = models.DateField(_("Employment Start Date"), help_text=_("In YYYY-MM-DD format."))
     # Timestamp & Flags
     application_date = models.DateTimeField(_("Application Date"), editable=False, auto_now_add=True)
     reviewed = models.BooleanField(_("Reviewed"), default=False)

@@ -1,17 +1,19 @@
+from django.contrib import admin
 from django.conf.urls.defaults import *
 
-# Uncomment the next two lines to enable the admin:
-# from django.contrib import admin
-# admin.autodiscover()
+
+admin.autodiscover()
+
 
 urlpatterns = patterns('',
-    # Example:
-    # (r'^landlord/', include('landlord.foo.urls')),
-
-    # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
-    # to INSTALLED_APPS to enable admin documentation:
-    # (r'^admin/doc/', include('django.contrib.admindocs.urls')),
-
-    # Uncomment the next line to enable the admin:
-    # (r'^admin/(.*)', admin.site.root),
+    # Admin
+    (r'^admin/(.*)', admin.site.root),
+    
+    # Application Form
+    url(r'^$', 'applications.views.application_form', name='application_form'),
+    
+    # Application Complete
+    url(r'^complete/$', 'django.views.generic.simple.direct_to_template', {
+        "template": "applications/complete.html",
+    }, name='application_complete'),
 )
