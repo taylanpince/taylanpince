@@ -1,0 +1,19 @@
+{% extends "blog/base.html" %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block header %}{{ post.title }}{% endblock %}
+
+{% block content %}
+
+{% if post.teaser %}<h2>{{ post.teaser_html }}</h2>{% endif %}
+
+{{ post.body_html }}
+
+<ul class="toolbar">
+    <li>{{ post.creation_date|date:"F j, Y" }}</li>
+    <li>Posted in {{ post.categories.all|join:"," }}</li>
+    {% if post.tags %}<li>Tagged as {{ post.tags }}</li>{% endif %}
+</ul>
+
+{% endblock %}
