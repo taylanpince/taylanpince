@@ -1,7 +1,7 @@
 /*
  *	Title: Screen CSS Styles for taylanpince.com
  *	Date: June 19, 2008
- *  Author: Taylan Pince (taylanpince@gmail.com)
+ *  Author: Taylan Pince (taylanpince at gmail dot com)
  */
 
 
@@ -33,6 +33,14 @@ h2 {
     color: #161616;
     line-height: 30px;
     margin: 0px 0px 20px 0px;
+}
+
+body.home h2 a,
+body.home h2 a:link,
+body.home h2 a:visited,
+body.home h2 a:active {
+    color: #161616;
+    border-bottom-color: #666;
 }
 
 h3 {
@@ -268,33 +276,12 @@ form li.padded {
     width: 880px;
 }
 
-#HeaderLogo,
-#HeaderLogo:hover {
+#HeaderLogo {
     float: right;
     display: inline;
     border: none;
     padding: 0px;
     background-color: transparent;
-}
-
-#Header strong {
-    font: 36px Georgia, "Times New Roman", Times, serif;
-    color: #b4af91;
-    margin: 0px 10px 0px 0px;
-}
-
-#Header strong a {
-    color: #787746;
-    border: none;
-}
-
-#Header strong a:hover {
-    color: #b4af91;
-    background-color: transparent;
-}
-
-#HeaderHome {
-    display: none;
 }
 
 /* @end */
