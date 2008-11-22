@@ -268,33 +268,12 @@ form li.padded {
     width: 880px;
 }
 
-#HeaderLogo,
-#HeaderLogo:hover {
+#HeaderLogo {
     float: right;
     display: inline;
     border: none;
     padding: 0px;
     background-color: transparent;
-}
-
-#Header strong {
-    font: 36px Georgia, "Times New Roman", Times, serif;
-    color: #b4af91;
-    margin: 0px 10px 0px 0px;
-}
-
-#Header strong a {
-    color: #787746;
-    border: none;
-}
-
-#Header strong a:hover {
-    color: #b4af91;
-    background-color: transparent;
-}
-
-#HeaderHome {
-    display: none;
 }
 
 /* @end */

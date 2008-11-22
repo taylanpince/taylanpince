@@ -11,13 +11,17 @@ MANAGERS = ADMINS
 
 TIME_ZONE = 'Canada/Eastern'
 
-USE_I18N = False
+USE_I18N = True
+
+SITE_ID = 1
 
 MEDIA_ROOT = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'media/')
 MEDIA_URL = '/media/'
-ADMIN_MEDIA_PREFIX = '/media/admin/'
+ADMIN_MEDIA_PREFIX = MEDIA_URL + 'admin/'
 
 SECRET_KEY = 'i_4i)=(d84poj9^$%g#h9-zk%(@4+l$nyud^m+=^k+z6@@j=wu'
+
+CACHE_BACKEND = 'db://caches'
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.auth',
@@ -35,7 +39,6 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.doc.XViewMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
 
 ROOT_URLCONF = 'taylanpince.urls'
@@ -51,10 +54,12 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.admin',
     
-    'django_evolution',
     'django_extensions',
-    'debug_toolbar',
     'sorl.thumbnail',
+    'tagging',
+    'core.utils',
+    
+    'blog',
 )
 
 try:

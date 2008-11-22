@@ -1,0 +1,132 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+<head>
+	
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	
+	<title>Taylan Pince | {% block title %}Web Development &amp; Design{% endblock %}</title>
+	
+	<style type="text/css" media="all">
+	    @import url("{{ MEDIA_URL }}css/reset.css");
+	    @import url("{{ MEDIA_URL }}css/screen.css");
+	    @import url("{{ MEDIA_URL }}css/pygments.css");
+    </style>
+	
+	<style type="text/css" media="print">
+	    @import url("{{ MEDIA_URL }}css/print.css");
+    </style>
+    
+    <link rel="alternate" href="{% url feeds "posts" %}" type="application/rss+xml" title="Blog Posts" />
+    
+</head>
+
+<body id="top" class="{% block class %}{% endblock %}">
+
+    <div id="Header">
+        <div id="HeaderWrapper">
+            <a href="{% url home %}" id="HeaderLogo"><img src="{{ MEDIA_URL }}images/logo-taylan-pince.png" alt="Taylan Pince" /></a>
+            
+            <ul id="Navigation">
+                <li><a href="{% url home %}" class="{% block nav_home %}{% endblock %}"><strong>Home</strong> recent posts</a></li>
+                {% comment %}<li><a href="{% url blog_landing %}" class="{% block nav_blog %}{% endblock %}"><strong>Blog</strong> articles + links</a></li>{% endcomment %}
+                <li><a href="{% url work %}" class="{% block nav_work %}{% endblock %}"><strong>Work</strong> portfolio</a></li>
+                {% comment %}<li><a href="#"><strong>Projects</strong> hobbies + goodies</a></li>{% endcomment %}
+                <li><a href="{% url about %}" class="{% block nav_about %}{% endblock %}"><strong>About</strong> info + contact</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <div id="Content">
+        <div id="ContentWrapper">
+            
+            <h1>{% block header %}{% endblock %}</h1>
+        
+            {% block content %}{% endblock %}
+            
+        </div>
+    </div>
+    
+    <div id="Footer">
+        <ul id="FooterWrapper">
+            <li>
+                <h4>Get In Touch</h4>
+                <p>I am always interested in hearing about new projects. You can reach me <script type="text/javascript">
+                //<![CDATA[
+
+                function hiveware_enkoder(){var i,j,x,y,x=
+                "x=\"783d22793e233839346533333437373534373433343337343436373534343437343734" +
+                "36343734333438343934373431343334323437373434343433343334393433343634373435" +
+                "3438343a343734333438343834383736343334353438373634373436343737353437343634" +
+                "38343434373737343734353437366433333465383934333734343637353437373734373434" +
+                "343737363433343634373434343737363437343a3437343134383736343734323437373434" +
+                "37343a3438343234373435343834313435373634373432343737343437343a343834323437" +
+                "3435343837323434373734373435343837343437343a34373432336638393464373a346334" +
+                "313465373a33393833376737373463333833383465383a3463366433333733343434313434" +
+                "37333434343a3433343334333736343434323437373734333734343437343437343a343734" +
+                "32343737353437373534333436343734313433343a343834333437373634343433383a3865" +
+                "3463333a333a34333364373a33393833383538343733383638343366383933633338333633" +
+                "3833393736383137323734383437363766383634653363383a3863333a343334653363373a" +
+                "346337393835373837663736376433333463383a3465333833383463373737673833333937" +
+                "3a346534313463373a3464383933663764373637663738383537393463373a336334653436" +
+                "3439333a3863373737673833333937623465356537323835373933663765373a3766333938" +
+                "3933663764373637663738383537393364373a336334363439333a34633365336537623466" +
+                "3465373a3463333a3863383a33633465383933663734373937323833353238353339376233" +
+                "3a346338653865383a3463233c7a3e28283c677073296a3e313c6a3d792f6d666f6875693c" +
+                "6a2c3e332a7c7a2c3e766f667464627166292826282c792f747663747573296a2d332a2a3c" +
+                "7e7a223b793d27273b783d756e6573636170652878293b666f7228693d303b693c782e6c65" +
+                "6e6774683b692b2b297b6a3d782e63686172436f646541742869292d313b6966286a3c3332" +
+                "296a2b3d39343b792b3d537472696e672e66726f6d43686172436f6465286a297d79\";y='" +
+                "';for(i=0;i<x.length;i+=2){y+=unescape('%'+x.substr(i,2));}y";
+                while(x=eval(x));}hiveware_enkoder();
+
+                //]]>
+                </script>.</p>
+            </li>
+            
+            <li>
+                <h4>RSS Feeds</h4>
+                <ul class="rss">
+                    {% comment %}<li><a href="#">Combined Feed</a></li>{% endcomment %}
+                    <li><a href="{% url feeds "posts" %}">Blog Posts</a></li>
+                    {% comment %}<li><a href="#">Links</a></li>{% endcomment %}
+                    {% comment %}<li><a href="#">Reviews</a></li>{% endcomment %}
+                </ul>
+            </li>
+            
+            <li>
+                <h4>Powered By</h4>
+                <p>This site was built with <a href="http://python.org">Python</a> using <a href="http://djangoproject.com">Django</a> and <a href="http://jquery.com">jQuery</a> - on a <a href="http://www.apple.com">Mac</a>, of course.</p>
+            </li>
+        </ul>
+    </div>
+    
+    <p id="Copyright">&copy; Copyright 2001-2008 Taylan Pince. All rights reserved.</p>
+
+    <script type="text/javascript" src="{{ MEDIA_URL }}js/jquery.js"></script>
+    <script type="text/javascript" src="{{ MEDIA_URL }}js/jquery.namespace.js"></script>
+    <script type="text/javascript" src="{{ MEDIA_URL }}js/taylanpince.js"></script>
+    <script type="text/javascript">
+    //<![CDATA[
+        $.extend($.namespace("core.TaylanPince"), {
+            media_url : "{{ MEDIA_URL }}"
+        });
+    //]]>
+    </script>
+    
+    <script type="text/javascript">
+    //<![CDATA[
+        var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+        document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+    //]]>
+    </script>
+    
+    <script type="text/javascript">
+    //<![CDATA[
+        var pageTracker = _gat._getTracker("UA-512258-1");
+        pageTracker._trackPageview();
+    //]]>
+    </script>
+    
+</body>
+</html>

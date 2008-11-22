@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% load blog_utils %}
+
+{% block class %}home{% endblock %}
+
+{% block nav_home %}active{% endblock %}
+
+{% block header %}Recent Posts{% endblock %}
+
+{% block content %}
+
+{% load_recent_posts 10 as posts %}
+
+{% for post in posts %}
+
+<h2><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h2>
+
+{% if post.teaser %}
+{{ post.teaser_html }}
+{% else %}
+{{ post.body_html|truncatewords_html:100 }}
+{% endif %}
+
+{% if not forloop.last %}<hr />{% endif %}
+
+{% endfor %}
+
+{% endblock %}
