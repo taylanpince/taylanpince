@@ -22,6 +22,8 @@
 {{ post.body_html|truncatewords_html:100 }}
 {% endif %}
 
+<p><a href="{{ post.get_absolute_url }}" rel="nofollow">Read more &raquo;</a></p>
+
 <ul class="toolbar">
     <li>{{ post.creation_date|date:"F j, Y" }}</li>
     <li>Posted in {{ post.categories.all|join:"," }}</li>
