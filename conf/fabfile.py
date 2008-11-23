@@ -30,11 +30,11 @@ def deploy(hash="HEAD"):
     run("rm -rf $(remote_dir)/deploy/build")
     
     # Create a symlink for the Django settings file
-    run("ln -s $(remote_dir)/deploy/conf/settings.py $(remote_dir)/deploy/taylanpince/settings_local.py")
+    run("cd $(remote_dir)/deploy/taylanpince; ln -s ../conf/settings.py settings_local.py")
     
     # Move the uploaded files directory from the active version to the new version, create a symlink
     run("mv $(remote_dir)/app/files $(remote_dir)/deploy/files")
-    run("ln -s $(remote_dir)/deploy/files $(remote_dir)/deploy/taylanpince/media/files")
+    run("cd $(remote_dir)/deploy/taylanpince/media; ln -s ../../files")
     
     # Remove the active version of the app and move the new one in its place
     run("rm -rf $(remote_dir)/app")
