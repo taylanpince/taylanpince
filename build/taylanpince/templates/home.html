@@ -22,7 +22,11 @@
 {{ post.body_html|truncatewords_html:100 }}
 {% endif %}
 
-{% if not forloop.last %}<hr />{% endif %}
+<ul class="toolbar">
+    <li>{{ post.creation_date|date:"F j, Y" }}</li>
+    <li>Posted in {{ post.categories.all|join:"," }}</li>
+    {% if post.tags %}<li>Tagged as {{ post.tags }}</li>{% endif %}
+</ul>
 
 {% endfor %}
 
