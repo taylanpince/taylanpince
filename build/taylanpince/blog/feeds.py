@@ -42,7 +42,7 @@ class RssLatestPostsByCategory(Feed):
     
     def description(self, obj):
         return "Latest blog posts listed under %(category)s from taylanpince.com" % {
-            "category": obj.name,
+            "category": obj.title,
         }
     
     def items(self, obj):
