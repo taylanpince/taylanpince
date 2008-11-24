@@ -10,6 +10,8 @@
 
 {{ post.body_html }}
 
+{% if post.link %}<p><a href="{{ post.link }}" rel="nofollow">Visit the site &raquo;</a></p>{% endif %}
+
 <ul class="toolbar">
     <li>{{ post.creation_date|date:"F j, Y" }}</li>
     <li>Posted in {{ post.categories.all|join:"," }}</li>
