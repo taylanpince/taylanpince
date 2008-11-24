@@ -1,0 +1,12 @@
+<h2><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h2>
+
+{% if post.teaser %}
+{{ post.teaser_html }}
+{% else %}
+{{ post.body_html|truncatewords_html:100 }}
+{% endif %}
+
+{% if post.body %}<p><a href="{{ post.get_absolute_url }}" rel="nofollow">Read more &raquo;</a></p>{% endif %}
+{% if post.link %}<p><a href="{{ post.link }}" rel="nofollow">Visit the bookmark &raquo;</a></p>{% endif %}
+
+{% include "blog/post_toolbar.html" %}

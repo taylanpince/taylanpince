@@ -22,3 +22,14 @@ def post_detail(request, slug):
     return render_to_response("blog/post_detail.html", {
         "post": post,
     }, context_instance=RequestContext(request))
+
+
+def category_detail(request, slug):
+    """
+    Renders the blog category detail page
+    """
+    category = get_object_or_404(Category, slug=slug)
+    
+    return render_to_response("blog/category_detail.html", {
+        "category": category,
+    }, context_instance=RequestContext(request))

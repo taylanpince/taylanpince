@@ -12,10 +12,6 @@
 
 {% if post.link %}<p><a href="{{ post.link }}" rel="nofollow">Visit the bookmark &raquo;</a></p>{% endif %}
 
-<ul class="toolbar">
-    <li>{{ post.creation_date|date:"F j, Y" }}</li>
-    <li>Posted in {{ post.categories.all|join:"," }}</li>
-    {% if post.tags %}<li>Tagged as {{ post.tags }}</li>{% endif %}
-</ul>
+{% include "blog/post_toolbar.html" %}
 
 {% endblock %}

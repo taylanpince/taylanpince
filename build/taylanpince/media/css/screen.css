@@ -373,11 +373,6 @@ ul.toolbar li {
     font-size: 12px;
 }
 
-ul.toolbar li a {
-    color: #787746;
-    border-color: #787746;
-}
-
 ul.toolbar li.first-child {
     border: none;
 }
