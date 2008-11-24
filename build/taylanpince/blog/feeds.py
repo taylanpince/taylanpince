@@ -46,4 +46,4 @@ class RssLatestPostsByCategory(Feed):
         }
     
     def items(self, obj):
-        return obj.post_set.all()[:15]
+        return Post.objects.filter(categories=obj)[:15]
