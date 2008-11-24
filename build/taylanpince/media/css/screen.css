@@ -35,10 +35,10 @@ h2 {
     margin: 0px 0px 20px 0px;
 }
 
-body.home h2 a,
-body.home h2 a:link,
-body.home h2 a:visited,
-body.home h2 a:active {
+body.teaser-list h2 a,
+body.teaser-list h2 a:link,
+body.teaser-list h2 a:visited,
+body.teaser-list h2 a:active {
     color: #161616;
     border-bottom-color: #666;
 }

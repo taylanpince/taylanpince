@@ -1,5 +1,5 @@
 <ul class="toolbar">
     <li>{{ post.creation_date|date:"F j, Y" }}</li>
-    <li>Posted in {% for cat in post.categories.all %}<a href="cat.get_absolute_url">{{ cat.title }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</li>
+    <li>Posted in {% for cat in post.categories.all %}<a href="{{ cat.get_absolute_url }}">{{ cat.title }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</li>
     {% if post.tags %}<li>Tagged as {{ post.tags }}</li>{% endif %}
 </ul>

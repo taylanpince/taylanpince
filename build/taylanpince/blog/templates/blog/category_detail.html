@@ -1,8 +1,10 @@
 {% extends "blog/base.html" %}
 
-{% block title %}{{ category.title }}{% endblock %}
+{% block title %}Category: {{ category.title }}{% endblock %}
 
-{% block header %}{{ category.title }}{% endblock %}
+{% block class %}category-detail teaser-list{% endblock %}
+
+{% block header %}Category: {{ category.title }}{% endblock %}
 
 {% block content %}
 
