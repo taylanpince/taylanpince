@@ -239,6 +239,7 @@ form li label {
     width: 100px;
     margin: 0px 10px 0px 0px;
     font-weight: bold;
+    padding: 5px 0px 0px 0px;
 }
 
 form li input.text,
