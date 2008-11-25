@@ -1,0 +1,4 @@
+{
+    {% if errors %}"errors" : {{ errors|safe }},{% endif %}
+    "comment" : {% if comment %}{{ comment|safe }}{% else %}null{% endif %},
+}

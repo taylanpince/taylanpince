@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
 
-from blog.models import Category, PostType, Post
+from blog.models import Category, PostType, Post, Comment
 
 
 class CategoryAdmin(admin.ModelAdmin):
@@ -34,6 +34,11 @@ class PostAdmin(admin.ModelAdmin):
     )
 
 
+class CommentAdmin(admin.ModelAdmin):
+    pass
+
+
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(PostType, PostTypeAdmin)
 admin.site.register(Post, PostAdmin)
+admin.site.register(Comment, CommentAdmin)

@@ -62,6 +62,12 @@ INSTALLED_APPS = (
     'blog',
 )
 
+AKISMET_API_KEY = '6162dece3c36'
+
+DEFAULT_AVATAR_ICON = MEDIA_URL + 'images/icon-avatar.png'
+GRAVATAR_URL = 'http://www.gravatar.com/avatar.php?'
+AVATAR_ICON_SIZE = 48
+
 try:
     from settings_local import *
 except:

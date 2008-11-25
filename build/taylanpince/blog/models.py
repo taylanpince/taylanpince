@@ -1,13 +1,20 @@
+import urllib
+import hashlib
+
 from django.db import models
+from django.conf import settings
 from django.core.cache import cache
+from django.contrib.sites.models import Site
 from django.utils.safestring import mark_safe
+from django.db.models.signals import pre_save
 from django.utils.translation import ugettext_lazy as _
 
 from tagging.fields import TagField
 from core.utils.parsers import parse_markdown
 from core.utils.fields import AutoSlugField, CreateDateTimeField, ChangeDateTimeField
 
-from blog.managers import PostManager
+from blog.signals import moderate_comment
+from blog.managers import PostManager, CommentManager
 
 
 class Category(models.Model):
@@ -127,3 +134,76 @@ class Post(models.Model):
     
     def __unicode__(self):
         return self.title
+
+
+class Comment(models.Model):
+    """
+    A comment linked to a Post object
+    """
+    # Content
+    url = models.URLField(_("Web Site"), blank=True)
+    body = models.TextField(_("Comment"))
+    
+    # Author
+    author = models.CharField(_("Name"), blank=True, max_length=255)
+    email = models.EmailField(_("Email"), blank=True)
+    ip_address = models.IPAddressField(_("IP Address"), blank=True)
+    
+    # Relation
+    post = models.ForeignKey("blog.Post", verbose_name=_("Post"))
+    
+    # Time Stamps
+    creation_date = CreateDateTimeField(_("Creation Date"), editable=True)
+    change_date = ChangeDateTimeField(_("Change Date"))
+    
+    # Publishing
+    published = models.BooleanField(_("Published"), default=False)
+    
+    # Managers
+    admin_objects = models.Manager()
+    objects = CommentManager()
+    
+    @property
+    def body_html(self):
+        """
+        Parses the body field using markdown and pygments, caches the results
+        """
+        key = "blog_comments_body_%s" % self.pk
+        html = cache.get(key)
+        
+        if not html:
+            html = parse_markdown(self.body)
+            cache.set(key, html, 60 * 60 * 24 * 30)
+        
+        return mark_safe(html)
+    
+    @property
+    def avatar(self):
+        if self.email:
+            return settings.GRAVATAR_URL + urllib.urlencode({
+                "gravatar_id": hashlib.md5(self.email).hexdigest(),
+                "default": settings.DEFAULT_AVATAR_ICON,
+                "size": str(settings.AVATAR_ICON_SIZE),
+            })
+        else:
+            return settings.DEFAULT_AVATAR_ICON
+    
+    def save(self):
+        if self.pk:
+            cache.delete("blog_comments_body_%s" % self.pk)
+        
+        super(Comment, self).save()
+    
+    class Meta:
+        verbose_name = _("Post")
+        verbose_name_plural = _("Posts")
+    
+    def __unicode__(self):
+        return u"Comment by %(author)s on %(date)s for %(post)s" % {
+            "author": self.author,
+            "date": self.creation_date,
+            "post": self.post,
+        }
+
+
+pre_save.connect(moderate_comment, Comment)

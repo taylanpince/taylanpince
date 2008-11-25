@@ -1,6 +1,11 @@
+from django.utils import simplejson
 from django.template import RequestContext
+from django.views.decorators.http import require_POST
 from django.shortcuts import render_to_response, get_object_or_404
 
+from core.utils.encoders import LazyEncoder, convert_object_to_json
+
+from blog.forms import CommentForm
 from blog.models import Category, PostType, Post
 
 
@@ -21,6 +26,7 @@ def post_detail(request, slug):
     
     return render_to_response("blog/post_detail.html", {
         "post": post,
+        "form": CommentForm(auto_id="%s", prefix="CommentForm")
     }, context_instance=RequestContext(request))
 
 
@@ -33,3 +39,41 @@ def category_detail(request, slug):
     return render_to_response("blog/category_detail.html", {
         "category": category,
     }, context_instance=RequestContext(request))
+
+
+@require_POST
+def submit_comment(request, slug):
+    """
+    Process the comment form
+    """
+    post = get_object_or_404(Post.objects, slug=slug)
+    form = CommentForm(request.POST, auto_id="%s", prefix="CommentForm")
+    
+    if form.is_valid():
+        form.ip_address = request.META.get("REMOTE_ADDR", None)
+        form.post = post
+        
+        comment = form.save()
+    else:
+        comment = None
+    
+    if request.is_ajax():
+        template = "blog/submit_comment.json"
+        mimetype = "application/json"
+        
+        if form.errors:
+            errors = simplejson.dumps(form.errors, cls=LazyEncoder, ensure_ascii=False)
+        else:
+            errors = None
+        
+        comment = convert_object_to_json(comment, fields=["url", "body_html", "author", "email", "creation_date", "published"])
+    else:
+        template = "blog/post_detail.html"
+        mimetype = "text/html; charset=utf-8"
+        errors = form.errors
+    
+    return render_to_response(template, {
+        "errors": errors,
+        "post": post,
+        "form": form,
+    }, context_instance=RequestContext(request), mimetype=mimetype)
