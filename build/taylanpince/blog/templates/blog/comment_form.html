@@ -15,10 +15,10 @@
             {{ form.url.label_tag }}
             {{ form.url }}
         </li>
-        <li class="padded checkbox">
+        {% comment %}<li class="padded checkbox">
             {{ form.remember }}
             {{ form.remember.label_tag }}
-        </li>
+        </li>{% endcomment %}
         <li>
             {% if form.body.errors %}<p class="error">{{ form.body.errors|join:"<br />" }}</p>{% endif %}
             {{ form.body.label_tag }}
