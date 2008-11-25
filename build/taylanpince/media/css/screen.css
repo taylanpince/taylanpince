@@ -30,17 +30,21 @@ h1 {
 
 h2 {
     font: 20px Georgia, "Times New Roman", Times, serif;
-    color: #161616;
+    color: #363636;
     line-height: 30px;
     margin: 0px 0px 20px 0px;
 }
 
 body.teaser-list h2 a,
 body.teaser-list h2 a:link,
-body.teaser-list h2 a:visited,
 body.teaser-list h2 a:active {
-    color: #161616;
-    border-bottom-color: #666;
+    color: #363636;
+    border-bottom-color: #363636;
+}
+
+body.teaser-list h2 a:visited {
+    color: #565656;
+    border-bottom-color: #565656;
 }
 
 h3 {
@@ -58,7 +62,7 @@ h4 {
 h5 {
     font: 13px Georgia, "Times New Roman", Times, serif;
     font-weight: bold;
-    color: #161616;
+    color: #363636;
     margin: 0px 0px 6px 0px;
 }
 
@@ -145,6 +149,11 @@ a:visited {
 	text-decoration: none;
 	border-bottom: 1px solid #c03000;
 	padding: 0px 0px 2px 0px;
+}
+
+a:visited {
+    color: #c06c00;
+    border-bottom-color: #c06c00;
 }
 
 a:hover {
