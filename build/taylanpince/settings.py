@@ -27,6 +27,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.auth',
     'django.core.context_processors.debug',
     'django.core.context_processors.media',
+    'core.utils.notifications.notifications',
 )
 
 TEMPLATE_LOADERS = (
@@ -39,6 +40,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.doc.XViewMiddleware',
+    'core.utils.notifications.NotificationMiddleware',
 )
 
 ROOT_URLCONF = 'taylanpince.urls'

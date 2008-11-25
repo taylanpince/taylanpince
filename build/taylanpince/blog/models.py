@@ -115,6 +115,10 @@ class Post(models.Model):
 
         return mark_safe(html)
     
+    @property
+    def comments(self):
+        return Comment.objects.filter(post=self)
+    
     def save(self):
         if self.pk:
             cache.delete("blog_posts_body_%s" % self.pk)
@@ -147,7 +151,7 @@ class Comment(models.Model):
     # Author
     author = models.CharField(_("Name"), blank=True, max_length=255)
     email = models.EmailField(_("Email"), blank=True)
-    ip_address = models.IPAddressField(_("IP Address"), blank=True)
+    ip_address = models.IPAddressField(_("IP Address"), blank=True, null=True)
     
     # Relation
     post = models.ForeignKey("blog.Post", verbose_name=_("Post"))
@@ -187,6 +191,9 @@ class Comment(models.Model):
             })
         else:
             return settings.DEFAULT_AVATAR_ICON
+    
+    def get_absolute_url(self):
+        return self.post.get_absolute_url + "#comment-%d" % self.pk
     
     def save(self):
         if self.pk:

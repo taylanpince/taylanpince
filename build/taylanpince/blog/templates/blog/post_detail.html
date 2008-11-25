@@ -2,7 +2,11 @@
 
 {% block title %}{{ post.title }}{% endblock %}
 
-{% block user_message %}
+{% block javascript %}
+<script type="text/javascript" src="{{ MEDIA_URL }}js/comments.js"></script>
+{% endblock %}
+
+{% block message %}
 {% if form.errors %}
 <p class="error-message">There were some errors with your comment submission. <a href="#add-comment">Click here</a> to scroll down to the form.</p>
 {% endif %}
@@ -20,11 +24,11 @@
 
 {% include "blog/post_toolbar.html" %}
 
-{% if post.comment_set.count %}
-<h3 id="comments">Comments ({{ post.comment_set.count }})</h3>
+{% if post.comments %}
+<h3 id="comments">Comments ({{ post.comments.count }})</h3>
 
 <ul id="CommentsList">
-    {% for comment in post.comment_set.all %}
+    {% for comment in post.comments %}
     <li>
         <div class="comment-content">
             {{ comment.body_html }}
@@ -41,6 +45,7 @@
                     {% else %}
                     Anonymous
                     {% endif %}
+                    {% endif %}
                 </strong>
             </p>
             <p>{{ comment.creation_date|date:"m j, Y" }} at {{ comment.creation_date|date:"P" }}</p>
@@ -50,55 +55,6 @@
 </ul>
 {% endif %}
 
-<h3 id="add-comment">Speak Your Mind</h3>
-
-<form id="CommentForm" method="post" action="{% url blog_submit_comment post.slug %}">
-    <ul>
-        <li>
-            {{ form.author.label_tag }}
-            {{ form.author }}
-        </li>
-        <li>
-            {{ form.email.label_tag }}
-            {{ form.email }}
-            <p class="help">Your address won't be shown, it will be used for <a href="http://gravatar.com">Gravatar icons</a> if available.</p>
-        </li>
-        <li>
-            {{ form.url.label_tag }}
-            {{ form.url }}
-        </li>
-        <li>
-            {% if form.body.errors %}<p class="error">{{ form.body.errors|join:"<br />" }}</p>{% endif %}
-            {{ form.body.label_tag }}
-            {{ form.body }}
-            <p class="help"><a href="http://daringfireball.net/projects/markdown/syntax">Markdown</a> is allowed, check out the <a href="#" id="MarkDownCheatSheetLink">cheat sheet</a> if you are not familiar.</p>
-        </li>
-        <li class="padded">
-            <input type="submit" value="Post" /> 
-        </li>
-    </ul>
-    
-    <div id="MarkDownCheatSheet">
-        <pre><code>Header 1    Header 2
-========    --------
-
-*italic*    **bold**
-
-&gt; A single level blockquote
-&gt;&gt; A nested quote
-
-A link: [example](http://url.com "title")
-Or a quick URL: &lt;http://url.com&gt;
-
-1. Numbered list item 1
-2. Numbered list item 2
-
-* Unordered list item 1
-* Unordered list item 2
-
-Any paragraph with 4 spaces to 
-the left is a preformatted code block</code></pre>
-    </div>
-</form>
+{% include "blog/comment_form.html" %}
 
 {% endblock %}

@@ -1,5 +1,7 @@
 from django.utils import simplejson
 from django.template import RequestContext
+from django.http import HttpResponseRedirect
+from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
 from django.shortcuts import render_to_response, get_object_or_404
 
@@ -50,15 +52,27 @@ def submit_comment(request, slug):
     form = CommentForm(request.POST, auto_id="%s", prefix="CommentForm")
     
     if form.is_valid():
-        form.ip_address = request.META.get("REMOTE_ADDR", None)
-        form.post = post
+        comment = form.save(commit=False)
         
-        comment = form.save()
+        comment.ip_address = request.META.get("REMOTE_ADDR", None)
+        comment.post = post
+        
+        comment.save()
+        
+        if comment.published:
+            request.notifications.create(_("Your comment has been posted!"), "success")
+        else:
+            request.notifications.create(_("Your comment was posted, but it won't be published until approved."), "warning")
+        
+        if not request.is_ajax():
+            return HttpResponseRedirect(post.get_absolute_url())
     else:
+        request.notifications.create(_("There were some errors with your comment submission."), "error")
+        
         comment = None
     
     if request.is_ajax():
-        template = "blog/submit_comment.json"
+        template = "blog/comment.json"
         mimetype = "application/json"
         
         if form.errors:
@@ -68,12 +82,13 @@ def submit_comment(request, slug):
         
         comment = convert_object_to_json(comment, fields=["url", "body_html", "author", "email", "creation_date", "published"])
     else:
-        template = "blog/post_detail.html"
+        template = "blog/comment.html"
         mimetype = "text/html; charset=utf-8"
         errors = form.errors
     
     return render_to_response(template, {
         "errors": errors,
+        "comment": comment,
         "post": post,
         "form": form,
     }, context_instance=RequestContext(request), mimetype=mimetype)

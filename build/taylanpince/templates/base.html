@@ -43,6 +43,14 @@
     <div id="Content">
         <div id="ContentWrapper">
             
+            {% if notifications %}
+            <ul id="Notifications">
+                {% for notification in notifications %}
+                <li class="{{ notification.type }}">{{ notification.content }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            
             <h1>{% block header %}{% endblock %}</h1>
         
             {% block content %}{% endblock %}
@@ -116,6 +124,8 @@
         });
     //]]>
     </script>
+    
+    {% block javascript %}{% endblock %}
     
     <script type="text/javascript">
     //<![CDATA[

@@ -203,7 +203,7 @@ label {
 input.text,
 select,
 textarea {
-    font-size: 14px;
+    font: 14px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
 	border: 4px solid #b4af91;
 	background-color: #d0cdb8;
 	padding: 4px;
@@ -266,6 +266,17 @@ form li p.help {
 
 form li.padded {
     padding: 0px 0px 0px 110px;
+}
+
+form li.checkbox label {
+    width: 390px;
+    font-weight: normal;
+}
+
+form li.checkbox input.checkbox {
+    margin: 2px 8px 0px 0px;
+    float: left;
+    display: inline;
 }
 
 /* @end */
@@ -444,6 +455,10 @@ ul.toolbar li.first-child {
 
 #CommentForm ul li {
     width: 540px;
+}
+
+#CommentForm textarea {
+    height: 373px;
 }
 
 #MarkDownCheatSheet {
