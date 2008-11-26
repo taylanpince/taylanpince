@@ -28,6 +28,10 @@ class Category(models.Model):
         verbose_name = _("Category")
         verbose_name_plural = _("Categories")
     
+    @property
+    def posts(self):
+        return Post.objects.filter(categories=self)
+    
     @models.permalink
     def get_absolute_url(self):
         return ("blog_category_detail", (), {

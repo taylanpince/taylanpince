@@ -8,9 +8,9 @@
 
 {% block content %}
 
-{% if category.post_set.count %}
+{% if category.posts %}
 
-{% for post in category.post_set.all %}
+{% for post in category.posts %}
 {% include "blog/post_teaser.html" %}
 {% endfor %}
 
