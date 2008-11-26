@@ -202,12 +202,11 @@ class Comment(models.Model):
         super(Comment, self).save()
     
     class Meta:
-        verbose_name = _("Post")
-        verbose_name_plural = _("Posts")
+        verbose_name = _("Comment")
+        verbose_name_plural = _("Comments")
     
     def __unicode__(self):
-        return u"Comment by %(author)s on %(date)s for %(post)s" % {
-            "author": self.author,
+        return u"Comment on %(date)s for %(post)s" % {
             "date": self.creation_date,
             "post": self.post,
         }
