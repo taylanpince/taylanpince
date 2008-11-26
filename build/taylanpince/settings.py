@@ -17,7 +17,6 @@ SITE_ID = 1
 
 MEDIA_ROOT = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'media/')
 MEDIA_URL = '/media/'
-ADMIN_MEDIA_PREFIX = MEDIA_URL + 'admin/'
 
 SECRET_KEY = 'i_4i)=(d84poj9^$%g#h9-zk%(@4+l$nyud^m+=^k+z6@@j=wu'
 
@@ -66,7 +65,6 @@ INSTALLED_APPS = (
 
 AKISMET_API_KEY = '6162dece3c36'
 
-DEFAULT_AVATAR_ICON = MEDIA_URL + 'images/icon-avatar.png'
 GRAVATAR_URL = 'http://www.gravatar.com/avatar.php?'
 AVATAR_ICON_SIZE = 48
 
@@ -74,3 +72,6 @@ try:
     from settings_local import *
 except:
     pass
+
+DEFAULT_AVATAR_ICON = MEDIA_URL + 'images/icon-avatar.png'
+ADMIN_MEDIA_PREFIX = MEDIA_URL + 'admin/'
