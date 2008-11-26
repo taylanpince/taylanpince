@@ -17,6 +17,8 @@ $.extend($.namespace("core.Comments"), {
     
     launch_markdown_sheet : function() {
         $("#MarkDownCheatSheet").fadeIn();
+        
+        core.scroll_to("#MarkDownCheatSheet");
     },
     
     render_comment : function(data) {
@@ -85,13 +87,13 @@ $.extend($.namespace("core.Comments"), {
         }));
 	    
         $.ajax({
-            "url" : $("#CommentForm").attr("action"),
-            "type" : "post",
-            "processData" : false,
-            "data" : $("#CommentForm").serialize(),
-            "dataType" : "json",
-            "contentType" : "application/json",
-            "success" : core.Comments.parse_comment_form
+            url : $("#CommentForm").attr("action"),
+            type : "post",
+            processData : false,
+            data : $("#CommentForm").serialize(),
+            dataType : "json",
+            contentType : "application/json",
+            success : this.parse_comment_form.bind(this)
         });
         
         core.scroll_to("#add-comment");

@@ -15,3 +15,10 @@ p.stand-by,
 p.stand-by {
     background-position: 6px 4px;
 }
+
+form li p.error,
+form li p.warning,
+form li p.success,
+form li p.stand-by {
+    background-position: 5px 3px;
+}
