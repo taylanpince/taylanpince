@@ -26,7 +26,7 @@ $.extend($.namespace("core.Comments"), {
         $("#CommentsList li:last-child").removeClass("last-child");
         $("#CommentsList").append(data);
         $("#CommentsList li:last-child").addClass("last-child");
-        $("#CommentForm").find("p.stand-by, p.success").fadeOut("slow");
+        $("#CommentForm").find("p.stand-by").fadeOut("slow");
         
         core.scroll_to("#CommentsList li:last-child");
         
