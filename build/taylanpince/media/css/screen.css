@@ -460,7 +460,11 @@ ul.toolbar li.first-child {
 }
 
 #CommentForm ul li {
-    width: 540px;
+    width: 530px;
+}
+
+#CommentForm ul li.padded {
+    width: 420px;
 }
 
 #CommentForm textarea {
@@ -470,7 +474,7 @@ ul.toolbar li.first-child {
 #MarkDownCheatSheet {
     float: left;
     display: inline;
-    width: 320px;
+    width: 312px;
     display: none;
 }
 
@@ -568,6 +572,7 @@ p.stand-by,
     margin: 0px 0px 10px 0px;
     padding: 5px 5px 5px 41px;
     border: 4px solid #B4AF91;
+    font-weight: bold;
 }
 
 p.error,

@@ -3,3 +3,15 @@
  *	Date: November 22, 2008
  *  Author: Taylan Pince (taylanpince at gmail dot com)
  */
+
+p.error,
+p.warning,
+p.success,
+p.stand-by,
+#Notifications li {
+    background-position: 6px 7px;
+}
+
+p.stand-by {
+    background-position: 6px 4px;
+}

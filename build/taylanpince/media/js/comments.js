@@ -25,9 +25,7 @@ $.extend($.namespace("core.Comments"), {
         $("#CommentsList li:last-child").addClass("last-child");
         $("#CommentForm").find("p.stand-by, p.success").fadeOut("slow");
         
-        $("html, body").animate({
-            "scrollTop" : parseInt($("#CommentsList li:last-child").offset().top)
-        }, 250);
+        core.scroll_to("#CommentsList li:last-child");
     },
     
     parse_comment_form : function(data) {
@@ -80,21 +78,23 @@ $.extend($.namespace("core.Comments"), {
     
     submit_comment_form : function() {
         $("#CommentForm").find("p.error, p.warning, p.success, p.stand-by").fadeOut("slow");
+	    $("#CommentForm").find("input[@type=submit]").attr("disabled", true);
         $("#CommentForm").prepend(core.render_template(this.error_template, {
             "message" : "Submitting your comment, please stand by.",
             "type" : "stand-by"
         }));
-	    $("#CommentForm").find("input[@type=submit]").attr("disabled", true);
 	    
         $.ajax({
-            url : $("#CommentForm").attr("action"),
-            type : "post",
-            processData : false,
-            data : $("#CommentForm").serialize(),
-            dataType : "json",
-            contentType : "application/json",
-            success : this.parse_comment_form.bind(this)
+            "url" : $("#CommentForm").attr("action"),
+            "type" : "post",
+            "processData" : false,
+            "data" : $("#CommentForm").serialize(),
+            "dataType" : "json",
+            "contentType" : "application/json",
+            "success" : core.Comments.parse_comment_form
         });
+        
+        core.scroll_to("#add-comment");
         
         return false;
     },

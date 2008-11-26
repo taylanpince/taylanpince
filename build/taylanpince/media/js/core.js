@@ -34,6 +34,12 @@ $.extend($.namespace("core"), {
         return template;
     },
     
+    scroll_to : function(obj) {
+        $("html, body").animate({
+            "scrollTop" : parseInt($(obj).offset().top)
+        }, 250);
+    },
+    
     init : function() {
         this.init_markers();
     }
