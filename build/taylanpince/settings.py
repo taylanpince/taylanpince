@@ -58,6 +58,7 @@ INSTALLED_APPS = (
     'django_extensions',
     'sorl.thumbnail',
     'tagging',
+    'batchadmin',
     'core.utils',
     
     'blog',
