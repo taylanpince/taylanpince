@@ -280,6 +280,14 @@ form li.checkbox input.checkbox {
     display: inline;
 }
 
+form li p.error {
+    width: 365px;
+    background: #FFE1DA url("../images/icon-error.png") 5px 3px no-repeat;
+    margin: 0px 0px 4px 110px;
+    padding: 5px 5px 5px 38px;
+    border: 4px solid #B4AF91;
+}
+
 /* @end */
 
 
@@ -545,6 +553,39 @@ ul.toolbar li.first-child {
     color: #d0cdb8;
     padding: 0px 0px 0px 25px;
     text-shadow: 0 0 0 #000;
+}
+
+/* @end */
+
+
+/* @group Notifications */
+
+#Notifications {
+    
+}
+
+#Notifications li {
+    background-position: 5px 3px;
+    background-repeat: no-repeat;
+    list-style-type: none;
+    margin: 0px 0px 10px 0px;
+    padding: 5px 5px 5px 38px;
+    border: 5px solid #B4AF91;
+}
+
+#Notifications li.error {
+    background-image: url("../images/icon-error.png");
+    background-color: #FFE1DA;
+}
+
+#Notifications li.warning {
+    background-image: url("../images/icon-warning.png");
+    background-color: #FFF8BF;
+}
+
+#Notifications li.success {
+    background-image: url("../images/icon-success.png");
+    background-color: #E2F9E3;
 }
 
 /* @end */
