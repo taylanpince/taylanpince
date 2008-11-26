@@ -1,13 +1,13 @@
 /*
-*	Taylan Pince
-*	Utility functions for taylanpince.com
+*	Core
+*	Global utility functions
 *	
 *	Requires jQuery library (http://www.jquery.com)
 *	
-*	Taylan Pince (taylanpince at gmail dot com) - June 20, 2008
+*	Taylan Pince (taylanpince at gmail dot com) - October 31, 2008
 */
 
-$.extend($.namespace("core.TaylanPince"), {
+$.extend($.namespace("core"), {
     
     init_markers : function() {
 		$("html").addClass("has-js");
@@ -25,6 +25,14 @@ $.extend($.namespace("core.TaylanPince"), {
         
 		$("hr").wrap('<div class="hr"></div>');
 	},
+	
+	render_template : function(template, values) {
+        for (val in values) {
+            template = template.replace("%(" + val + ")", values[val]);
+        }
+        
+        return template;
+    },
     
     init : function() {
         this.init_markers();
@@ -34,5 +42,5 @@ $.extend($.namespace("core.TaylanPince"), {
 
 
 $(function() {
-    core.TaylanPince.init();
+    core.init();
 });

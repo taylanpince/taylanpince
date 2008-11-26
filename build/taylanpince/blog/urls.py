@@ -13,4 +13,7 @@ urlpatterns = patterns("blog.views",
     
     # Category Detail
     url(r"^categories/(?P<slug>[-\w]+)/$", "category_detail", name="blog_category_detail"),
+    
+    # Comment Detail
+    url(r"^comments/(?P<id>[0-9]+)/$", "comment_detail", name="blog_comment_detail"),
 )

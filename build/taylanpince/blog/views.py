@@ -8,7 +8,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from core.utils.encoders import LazyEncoder, convert_object_to_json
 
 from blog.forms import CommentForm
-from blog.models import Category, PostType, Post
+from blog.models import Category, PostType, Post, Comment
 
 
 def landing(request):
@@ -43,6 +43,17 @@ def category_detail(request, slug):
     }, context_instance=RequestContext(request))
 
 
+def comment_detail(request, id):
+    """
+    Renders a single comment
+    """
+    comment = get_object_or_404(Comment.objects, pk=id)
+    
+    return render_to_response("blog/comment_detail.html", {
+        "comment": comment,
+    }, context_instance=RequestContext(request))
+
+
 @require_POST
 def submit_comment(request, slug):
     """
@@ -72,17 +83,15 @@ def submit_comment(request, slug):
         comment = None
     
     if request.is_ajax():
-        template = "blog/comment.json"
+        template = "blog/comment_submit.json"
         mimetype = "application/json"
         
         if form.errors:
             errors = simplejson.dumps(form.errors, cls=LazyEncoder, ensure_ascii=False)
         else:
             errors = None
-        
-        comment = convert_object_to_json(comment, fields=["url", "body_html", "author", "email", "creation_date", "published"])
     else:
-        template = "blog/comment.html"
+        template = "blog/comment_submit.html"
         mimetype = "text/html; charset=utf-8"
         errors = form.errors
     

@@ -1,0 +1,7 @@
+{
+    {% if notifications %}"notifications" : [
+        {% for notification in notifications %}["{{ notification.type }}", "{{ notification.content|safe }}"]{% if not forloop.last %},{% endif %}{% endfor %}
+    ],{% endif %}
+    {% if errors %}"errors" : {{ errors|safe }},{% endif %}
+    "comment" : {% if comment and comment.published %}"{% url blog_comment_detail comment.pk %}"{% else %}null{% endif %},
+}

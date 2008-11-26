@@ -1,0 +1,22 @@
+<li id="comment-{{ comment.pk }}">
+    <div class="comment-content">
+        {{ comment.body_html }}
+    </div>
+    <div class="comment-author">
+        <img src="{{ comment.avatar }}" alt="{{ comment.author }}" />
+        <p>
+            <strong>
+                {% if comment.author and comment.url %}
+                <a href="{{ comment.url }}">{{ comment.author }}</a>
+                {% else %}
+                {% if comment.author %}
+                {{ comment.author }}
+                {% else %}
+                Anonymous
+                {% endif %}
+                {% endif %}
+            </strong>
+        </p>
+        <p>{{ comment.creation_date|date:"m j, Y" }} at {{ comment.creation_date|date:"P" }}</p>
+    </div>
+</li>

@@ -145,12 +145,12 @@ class Comment(models.Model):
     A comment linked to a Post object
     """
     # Content
-    url = models.URLField(_("Web Site"), blank=True)
     body = models.TextField(_("Comment"))
     
     # Author
     author = models.CharField(_("Name"), blank=True, max_length=255)
     email = models.EmailField(_("Email"), blank=True)
+    url = models.URLField(_("Web Site"), blank=True, verify_exists=True)
     ip_address = models.IPAddressField(_("IP Address"), blank=True, null=True)
     
     # Relation

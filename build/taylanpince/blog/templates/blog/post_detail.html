@@ -6,12 +6,6 @@
 <script type="text/javascript" src="{{ MEDIA_URL }}js/comments.js"></script>
 {% endblock %}
 
-{% block message %}
-{% if form.errors %}
-<p class="error-message">There were some errors with your comment submission. <a href="#add-comment">Click here</a> to scroll down to the form.</p>
-{% endif %}
-{% endblock %}
-
 {% block header %}{{ post.title }}{% endblock %}
 
 {% block content %}
@@ -29,28 +23,7 @@
 
 <ul id="CommentsList">
     {% for comment in post.comments %}
-    <li>
-        <div class="comment-content">
-            {{ comment.body_html }}
-        </div>
-        <div class="comment-author">
-            <img src="{{ comment.avatar }}" alt="{{ comment.author }}" />
-            <p>
-                <strong>
-                    {% if comment.author and comment.url %}
-                    <a href="{{ comment.url }}">{{ comment.author }}</a>
-                    {% else %}
-                    {% if comment.author %}
-                    {{ comment.author }}
-                    {% else %}
-                    Anonymous
-                    {% endif %}
-                    {% endif %}
-                </strong>
-            </p>
-            <p>{{ comment.creation_date|date:"m j, Y" }} at {{ comment.creation_date|date:"P" }}</p>
-        </div>
-    </li>
+    {% include "blog/comment_detail.html" %}
     {% endfor %}
 </ul>
 {% endif %}
