@@ -68,6 +68,7 @@ $.extend($.namespace("core.Comments"), {
                 $.ajax({
                     url : data.comment,
                     type : "get",
+                    processData : false,
                     success : this.render_comment.bind(this)
                 });
 	        }
