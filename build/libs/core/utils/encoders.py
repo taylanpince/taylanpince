@@ -29,10 +29,10 @@ def convert_object_to_json(object, fields=[], raw=False):
     
     if len(fields) > 0:
         for field in fields:
-            data[field] = getattr(item, field)
+            data[field] = getattr(object, field)
     else:
-        for field in item._meta.fields:
-            data[field.attname] = getattr(item, field.attname)
+        for field in object._meta.fields:
+            data[field.attname] = getattr(object, field.attname)
     
     if raw:
         return data
