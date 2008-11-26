@@ -15,6 +15,10 @@ body {
     opacity: 0.999999;
 }
 
+.hidden {
+    display: none;
+}
+
 /* @end */
 
 

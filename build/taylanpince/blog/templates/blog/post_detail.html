@@ -18,15 +18,15 @@
 
 {% include "blog/post_toolbar.html" %}
 
-{% if post.comments %}
-<h3 id="comments">Comments ({{ post.comments.count }})</h3>
+{% with post.comments as comments %}
+<h3 id="comments" class="{% if not comments %}hidden{% endif %}">Comments (<span id="CommentsListCount">{{ post.comments.count }}</span>)</h3>
 
-<ul id="CommentsList">
-    {% for comment in post.comments %}
+<ul id="CommentsList" class="{% if not comments %}hidden{% endif %}">
+    {% for comment in comments %}
     {% include "blog/comment_detail.html" %}
     {% endfor %}
 </ul>
-{% endif %}
+{% endwith %}
 
 {% include "blog/comment_form.html" %}
 

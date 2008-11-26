@@ -22,12 +22,15 @@ $.extend($.namespace("core.Comments"), {
     },
     
     render_comment : function(data) {
+        $("#comments, #CommentsList").removeClass("hidden");
         $("#CommentsList li:last-child").removeClass("last-child");
         $("#CommentsList").append(data);
         $("#CommentsList li:last-child").addClass("last-child");
         $("#CommentForm").find("p.stand-by, p.success").fadeOut("slow");
         
         core.scroll_to("#CommentsList li:last-child");
+        
+        $("#CommentsListCount").text($("#CommentsList li").size());
     },
     
     parse_comment_form : function(data) {
@@ -67,8 +70,9 @@ $.extend($.namespace("core.Comments"), {
                 
                 $.ajax({
                     url : data.comment,
-                    type : "get",
+                    type : "GET",
                     processData : false,
+                    dataType : "html",
                     success : this.render_comment.bind(this)
                 });
 	        }
@@ -89,7 +93,7 @@ $.extend($.namespace("core.Comments"), {
 	    
         $.ajax({
             url : $("#CommentForm").attr("action"),
-            type : "post",
+            type : "POST",
             processData : false,
             data : $("#CommentForm").serialize(),
             dataType : "json",
