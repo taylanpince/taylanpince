@@ -19,6 +19,13 @@ def deploy(hash="HEAD"):
     local("mkdir ../tmp")
     local("cd ..; git archive -v --format=tar --prefix=deploy/ $(hash) conf build/libs build/taylanpince | gzip > tmp/archive.tar.gz")
     
+    # Untar the archive to minify js files
+    local("cd ../tmp; tar -xzvf archive.tar.gz; rm -f archive.tar.gz")
+    local("python /usr/local/lib/yuicompressor/bin/jsminify.py --dir=../tmp/deploy/build/taylanpince/media/js")
+    
+    # Tarball the release again
+    local("cd ../tmp; tar -cvf archive.tar deploy; gzip archive.tar")
+    
     # Upload the archive to the server
     put("../tmp/archive.tar.gz", "$(remote_dir)/archive.tar.gz")
     
