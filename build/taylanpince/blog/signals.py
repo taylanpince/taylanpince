@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.utils.encoding import smart_str
+from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
 
 from akismet import Akismet
@@ -43,7 +44,7 @@ def ping_blog_indexes(sender, instance, created, **kwargs):
                     site.name, 
                     "http://%s/" % site.domain, 
                     "http://%s%s" % (site.domain, instance.get_absolute_url()), 
-                    "http://%s%s" % (site.domain, reverse("feeds", (), {"url": "posts"}))
+                    "http://%s%s" % (site.domain, reverse("feeds", kwargs={"url": "posts"}))
                 )
             except:
                 rpc.weblogUpdates.ping(site.name, "http://%s/" % site.domain)
