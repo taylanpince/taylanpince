@@ -1,0 +1,21 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Tag: {{ tag.name }}{% endblock %}
+
+{% block class %}tag-detail teaser-list{% endblock %}
+
+{% block header %}Tag: {{ tag.name }}{% endblock %}
+
+{% block content %}
+
+{% if posts_list %}
+
+{% for post in posts_list %}
+{% include "blog/post_teaser.html" %}
+{% endfor %}
+
+{% else %}
+<p>No posts were found under this tag.</p>
+{% endif %}
+
+{% endblock %}

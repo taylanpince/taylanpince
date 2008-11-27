@@ -16,4 +16,7 @@ urlpatterns = patterns("blog.views",
     
     # Comment Detail
     url(r"^comments/(?P<id>[0-9]+)/$", "comment_detail", name="blog_comment_detail"),
+    
+    # Tag Detail
+    url(r"^tags/(?P<tag>[a-zA-Z0-9\.]+)/$", "tag_detail", name="blog_tag_detail"),
 )

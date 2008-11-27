@@ -5,6 +5,7 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
 from django.shortcuts import render_to_response, get_object_or_404
 
+from tagging.views import tagged_object_list
 from core.utils.encoders import LazyEncoder, convert_object_to_json
 
 from blog.forms import CommentForm
@@ -41,6 +42,20 @@ def category_detail(request, slug):
     return render_to_response("blog/category_detail.html", {
         "category": category,
     }, context_instance=RequestContext(request))
+
+
+def tag_detail(request, tag):
+    """
+    Renders the tag detail page
+    """
+    return tagged_object_list(
+        request, 
+        Post.objects, 
+        tag, 
+        allow_empty=True, 
+        template_name="blog/tag_detail.html", 
+        template_object_name="posts"
+    )
 
 
 def comment_detail(request, id):
