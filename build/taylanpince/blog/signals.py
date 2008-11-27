@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
 
 from akismet import Akismet
-from xmlrpclib import Server as XMLRPCServer
+from xmlrpclib import ServerProxy
 
 
 def moderate_comment(sender, instance, **kwargs):
@@ -37,7 +37,7 @@ def ping_blog_indexes(sender, instance, created, **kwargs):
         site = Site.objects.get_current()
     
         for index in settings.BLOG_INDEXES:
-            rpc = XMLRPCServer(index)
+            rpc = ServerProxy(index)
         
             try:
                 rpc.weblogUpdates.extendedPing(
