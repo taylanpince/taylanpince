@@ -6,11 +6,11 @@
 
 {% block nav_home %}active{% endblock %}
 
-{% block header %}Recent Posts{% endblock %}
+{% block header %}Recent Updates{% endblock %}
 
 {% block content %}
 
-{% load_recent_posts 10 as posts %}
+{% load_recent_posts 5 as posts %}
 
 {% for post in posts %}
 

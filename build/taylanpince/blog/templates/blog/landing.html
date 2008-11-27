@@ -1,6 +1,6 @@
 {% extends "blog/base.html" %}
 
-{% load blog_utils %}
+{% load pagination %}
 
 {% block class %}blog teaser-list{% endblock %}
 
@@ -8,12 +8,20 @@
 
 {% block content %}
 
-{% load_recent_posts 5 as posts %}
+{% if posts_list %}
 
-{% for post in posts %}
+{% for post in posts_list %}
 
 {% include "blog/post_teaser.html" %}
 
 {% endfor %}
+
+{% if is_paginated %}
+{% paginate paginator page_obj pager_url %}
+{% endif %}
+
+{% else %}
+<p>No posts were found under this tag.</p>
+{% endif %}
 
 {% endblock %}

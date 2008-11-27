@@ -1,5 +1,7 @@
 {% extends "blog/base.html" %}
 
+{% load pagination %}
+
 {% block title %}Tag: {{ tag.name }}{% endblock %}
 
 {% block feed %}<link rel="alternate" href="{% url feeds "posts-by-tag" %}{{ tag.name }}/" type="application/rss+xml" title="Blog Posts Tagged As {{ tag.name }}" />{% endblock %}
@@ -15,6 +17,10 @@
 {% for post in posts_list %}
 {% include "blog/post_teaser.html" %}
 {% endfor %}
+
+{% if is_paginated %}
+{% paginate paginator page_obj pager_url %}
+{% endif %}
 
 {% else %}
 <p>No posts were found under this tag.</p>

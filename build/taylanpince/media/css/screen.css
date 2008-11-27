@@ -610,3 +610,53 @@ p.stand-by {
 }
 
 /* @end */
+
+
+/* @group Pagination */
+
+#Pagination {
+    width: 870px;
+    display: block;
+    position: static;
+    overflow: hidden;
+    margin: 0px;
+}
+
+#Pagination li {
+    float: right;
+    display: inline;
+    list-style-type: none;
+    margin: 0px 0px 2px 5px;
+}
+
+#Pagination li span {
+    margin: 0px 10px 0px 0px;
+}
+
+#Pagination li a {
+    border: 2px solid #6d1b00;
+    margin: 0px 10px 0px 0px;
+    padding: 0px 6px 2px 6px;
+    background-color: #c03000;
+    color: #FFF;
+    font-size: 13px;
+}
+
+#Pagination li a.active,
+#Pagination li a.active:visited {
+    background-color: #787745;
+    border-color: #32331d;
+    color: #FFF;
+}
+
+#Pagination li a:visited {
+    background-color: #c06c00;
+}
+
+#Pagination li a:hover {
+    color: #32331d;
+    border-color: #32331d;
+    background-color: #c0bf99;
+}
+
+/* @end */

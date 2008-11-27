@@ -1,11 +1,14 @@
 from django.utils import simplejson
 from django.template import RequestContext
 from django.http import HttpResponseRedirect
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
+from django.views.generic.list_detail import object_list
 from django.shortcuts import render_to_response, get_object_or_404
 
 from tagging.views import tagged_object_list
+from core.utils.pagination import make_url_pattern
 from core.utils.encoders import LazyEncoder, convert_object_to_json
 
 from blog.forms import CommentForm
@@ -16,9 +19,18 @@ def landing(request):
     """
     Renders the landing page that aggregates all recent items
     """
-    return render_to_response("blog/landing.html", {
-        
-    }, context_instance=RequestContext(request))
+    return object_list(
+        request,
+        queryset=Post.objects.all(),
+        paginate_by=5,
+        page=request.GET.get("page", 1),
+        template_name="blog/landing.html",
+        allow_empty=True,
+        template_object_name="posts",
+        extra_context={
+            "pager_url": make_url_pattern(reverse("blog_landing"), request.GET),
+        }
+    )
 
 
 def post_detail(request, slug):
@@ -39,6 +51,20 @@ def category_detail(request, slug):
     """
     category = get_object_or_404(Category, slug=slug)
     
+    return object_list(
+        request,
+        queryset=category.posts,
+        paginate_by=5,
+        page=request.GET.get("page", 1),
+        template_name="blog/category_detail.html",
+        allow_empty=True,
+        template_object_name="posts",
+        extra_context={
+            "category": category,
+            "pager_url": make_url_pattern(category.get_absolute_url(), request.GET),
+        }
+    )
+    
     return render_to_response("blog/category_detail.html", {
         "category": category,
     }, context_instance=RequestContext(request))
@@ -49,12 +75,17 @@ def tag_detail(request, tag):
     Renders the tag detail page
     """
     return tagged_object_list(
-        request, 
-        Post.objects, 
-        tag, 
-        allow_empty=True, 
-        template_name="blog/tag_detail.html", 
-        template_object_name="posts"
+        request,
+        Post.objects,
+        tag,
+        paginate_by=5,
+        page=request.GET.get("page", 1),
+        allow_empty=True,
+        template_name="blog/tag_detail.html",
+        template_object_name="posts",
+        extra_context={
+            "pager_url": make_url_pattern(reverse("blog_tag_detail", kwargs={"tag": tag}), request.GET),
+        }
     )
 
 

@@ -1,5 +1,7 @@
 {% extends "blog/base.html" %}
 
+{% load pagination %}
+
 {% block title %}Category: {{ category.title }}{% endblock %}
 
 {% block feed %}<link rel="alternate" href="{% url feeds "posts-by-category" %}{{ category.slug }}/" type="application/rss+xml" title="Blog Posts Listed Under {{ category.title }}" />{% endblock %}
@@ -10,11 +12,15 @@
 
 {% block content %}
 
-{% if category.posts %}
+{% if posts_list %}
 
-{% for post in category.posts %}
+{% for post in posts_list %}
 {% include "blog/post_teaser.html" %}
 {% endfor %}
+
+{% if is_paginated %}
+{% paginate paginator page_obj pager_url %}
+{% endif %}
 
 {% else %}
 <p>No posts were found under this category.</p>

@@ -40,8 +40,8 @@
             <a href="{% url home %}" id="HeaderLogo"><img src="{{ MEDIA_URL }}images/logo-taylan-pince.png" alt="Taylan Pince" /></a>
             
             <ul id="Navigation">
-                <li><a href="{% url home %}" class="{% block nav_home %}{% endblock %}"><strong>Home</strong> recent posts</a></li>
-                {% comment %}<li><a href="{% url blog_landing %}" class="{% block nav_blog %}{% endblock %}"><strong>Blog</strong> articles + links</a></li>{% endcomment %}
+                <li><a href="{% url home %}" class="{% block nav_home %}{% endblock %}"><strong>Home</strong> recent updates</a></li>
+                <li><a href="{% url blog_landing %}" class="{% block nav_blog %}{% endblock %}"><strong>Blog</strong> articles + links</a></li>
                 <li><a href="{% url work %}" class="{% block nav_work %}{% endblock %}"><strong>Work</strong> portfolio</a></li>
                 {% comment %}<li><a href="#"><strong>Projects</strong> hobbies + goodies</a></li>{% endcomment %}
                 <li><a href="{% url about %}" class="{% block nav_about %}{% endblock %}"><strong>About</strong> info + contact</a></li>
