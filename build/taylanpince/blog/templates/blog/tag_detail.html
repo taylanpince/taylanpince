@@ -2,6 +2,8 @@
 
 {% block title %}Tag: {{ tag.name }}{% endblock %}
 
+{% block feed %}<link rel="alternate" href="{% url feeds "posts-by-tag" %}{{ tag.name }}/" type="application/rss+xml" title="Blog Posts Tagged As {{ tag.name }}" />{% endblock %}
+
 {% block class %}tag-detail teaser-list{% endblock %}
 
 {% block header %}Tag: {{ tag.name }}{% endblock %}

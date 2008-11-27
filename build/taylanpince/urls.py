@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.conf.urls.defaults import *
 
-from blog.feeds import RssLatestPosts, RssLatestPostsByCategory
+from blog.feeds import RssLatestPosts, RssLatestPostsByCategory, RssLatestPostsByTag
 
 
 admin.autodiscover()
@@ -34,6 +34,7 @@ urlpatterns = patterns("",
         "feed_dict": {
             "posts": RssLatestPosts,
             "posts-by-category": RssLatestPostsByCategory,
+            "posts-by-tag": RssLatestPostsByTag,
         }
     }, name="feeds"),
 )

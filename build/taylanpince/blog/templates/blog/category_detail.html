@@ -2,6 +2,8 @@
 
 {% block title %}Category: {{ category.title }}{% endblock %}
 
+{% block feed %}<link rel="alternate" href="{% url feeds "posts-by-category" %}{{ category.slug }}/" type="application/rss+xml" title="Blog Posts Listed Under {{ category.title }}" />{% endblock %}
+
 {% block class %}category-detail teaser-list{% endblock %}
 
 {% block header %}Category: {{ category.title }}{% endblock %}

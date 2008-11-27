@@ -2,7 +2,7 @@ from django.core.urlresolvers import reverse
 from django.utils.feedgenerator import Atom1Feed
 from django.contrib.syndication.feeds import Feed
 
-from tagging.models import Tag
+from tagging.models import Tag, TaggedItem
 
 from blog.models import Category, Post
 
@@ -56,3 +56,30 @@ class RssLatestPostsByCategory(RssLatestPosts):
     
     def items(self, obj):
         return Post.objects.filter(categories=obj)[:15]
+
+
+class RssLatestPostsByTag(RssLatestPosts):
+    def title(self, obj):
+        return "Taylan Pince - Blogs Posts Tagged As %s" % obj.name
+    
+    def description(self, obj):
+        return "Latest blog posts tagged as %(category)s from taylanpince.com" % {
+            "category": obj.name,
+        }
+    
+    def link(self, obj):
+        if not obj:
+            raise FeedDoesNotExist
+        
+        return reverse("blog_tag_detail", kwargs={
+            "tag": obj.name,
+        })
+    
+    def get_object(self, bits):
+        if len(bits) != 1:
+            raise ObjectDoesNotExist
+        
+        return Tag.objects.get(name__exact=bits[0])
+    
+    def items(self, obj):
+        return TaggedItem.objects.get_by_model(Post.objects, obj)[:15]

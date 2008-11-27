@@ -24,7 +24,7 @@
         </style>
     <![endif]-->
     
-    <link rel="alternate" href="{% url feeds "posts" %}" type="application/rss+xml" title="Blog Posts" />
+    {% block feed %}<link rel="alternate" href="{% url feeds "posts" %}" type="application/rss+xml" title="Blog Posts" />{% endblock %}
     
 	<link rel="shortcut icon" href="{{ MEDIA_URL }}images/favicon.ico" />
 	
