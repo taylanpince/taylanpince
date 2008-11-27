@@ -1,0 +1,19 @@
+{% load pagination %}
+
+<ul id="Pagination">
+    
+    {% if page.has_next %}<li><a href="{% paginate_url pager_url page.next_page_number %}">&raquo;</a></li>{% endif %}
+
+    {% for p in page_range %}
+    <li>
+        {% ifequal p "." %}
+        	<span>...</span>
+        {% else %}
+        	<a href="{% paginate_url pager_url p %}" {% ifequal page.number p %}class="active"{% endifequal %}>{{ p }}</a>
+        {% endifequal %}
+    </li>
+    {% endfor %}
+
+    {% if page.has_previous %}<li><a href="{% paginate_url pager_url page.previous_page_number %}">&laquo;</a></li>{% endif %}
+    
+</div>
