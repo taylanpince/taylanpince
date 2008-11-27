@@ -17,20 +17,20 @@ def deploy(hash="HEAD"):
     
     # Create a temporary local directory, export the given commit using git archive
     local("mkdir ../tmp")
-    local("cd ..; git archive -v --format=tar --prefix=deploy/ $(hash) conf build/libs build/taylanpince | gzip > tmp/archive.tar.gz")
+    local("cd ..; git archive --format=tar --prefix=deploy/ $(hash) conf build/libs build/taylanpince | gzip > tmp/archive.tar.gz")
     
     # Untar the archive to minify js files
-    local("cd ../tmp; tar -xzvf archive.tar.gz; rm -f archive.tar.gz")
+    local("cd ../tmp; tar -xzf archive.tar.gz; rm -f archive.tar.gz")
     local("python /usr/local/lib/yuicompressor/bin/jsminify.py --dir=../tmp/deploy/build/taylanpince/media/js")
     
     # Tarball the release again
-    local("cd ../tmp; tar -cvf archive.tar deploy; gzip archive.tar")
+    local("cd ../tmp; tar -cf archive.tar deploy; gzip archive.tar")
     
     # Upload the archive to the server
     put("../tmp/archive.tar.gz", "$(remote_dir)/archive.tar.gz")
     
     # Extract the files from the archive, remove the file
-    run("cd $(remote_dir); tar -xzvf archive.tar.gz; rm -f archive.tar.gz")
+    run("cd $(remote_dir); tar -xzf archive.tar.gz; rm -f archive.tar.gz")
     
     # Move directories out of the build folder and get rid of it
     run("mv $(remote_dir)/deploy/build/* $(remote_dir)/deploy/")
