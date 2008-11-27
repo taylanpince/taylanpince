@@ -39,6 +39,10 @@ h2 {
     margin: 0px 0px 20px 0px;
 }
 
+h2 p {
+    line-height: 30px;
+}
+
 body.teaser-list h2 a,
 body.teaser-list h2 a:link,
 body.teaser-list h2 a:active {
@@ -76,6 +80,7 @@ h5 {
 /* @group Text */
 
 p {
+	line-height: 21px;
 	margin: 0px 0px 20px 0px;
 }
 
