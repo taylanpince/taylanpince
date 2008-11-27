@@ -70,6 +70,12 @@ AKISMET_API_KEY = '6162dece3c36'
 GRAVATAR_URL = 'http://www.gravatar.com/avatar.php?'
 AVATAR_ICON_SIZE = 48
 
+BLOG_INDEXES = (
+    'http://rpc.technorati.com/rpc/ping',
+    'http://blogsearch.google.com/ping/RPC2',
+    'http://rpc.weblogs.com/RPC2',
+)
+
 try:
     from settings_local import *
 except:

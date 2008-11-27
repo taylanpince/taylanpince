@@ -6,15 +6,15 @@ from django.conf import settings
 from django.core.cache import cache
 from django.contrib.sites.models import Site
 from django.utils.safestring import mark_safe
-from django.db.models.signals import pre_save
 from django.utils.translation import ugettext_lazy as _
+from django.db.models.signals import pre_save, post_save
 
 from tagging.fields import TagField
 from core.utils.parsers import parse_markdown
 from core.utils.fields import AutoSlugField, CreateDateTimeField, ChangeDateTimeField
 
-from blog.signals import moderate_comment
 from blog.managers import PostManager, CommentManager
+from blog.signals import moderate_comment, ping_blog_indexes
 
 
 class Category(models.Model):
@@ -142,6 +142,9 @@ class Post(models.Model):
     
     def __unicode__(self):
         return self.title
+
+
+post_save.connect(ping_blog_indexes, Post)
 
 
 class Comment(models.Model):

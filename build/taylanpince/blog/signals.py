@@ -3,6 +3,7 @@ from django.utils.encoding import smart_str
 from django.contrib.sites.models import Site
 
 from akismet import Akismet
+from xmlrpclib import Server as XMLRPCServer
 
 
 def moderate_comment(sender, instance, **kwargs):
@@ -25,3 +26,24 @@ def moderate_comment(sender, instance, **kwargs):
                 instance.published = True
         except:
             pass
+
+
+def ping_blog_indexes(sender, instance, created, **kwargs):
+    """
+    Ping blog indexes using XMLRPC
+    """
+    if created:
+        site = Site.objects.get_current()
+    
+        for index in settings.BLOG_INDEXES:
+            rpc = XMLRPCServer(index)
+        
+            try:
+                rpc.weblogUpdates.extendedPing(
+                    site.name, 
+                    "http://%s/" % site.domain, 
+                    "http://%s%s" % (site.domain, instance.get_absolute_url()), 
+                    "http://%s%s" % (site.domain, reverse("feeds", (), {"url": "posts"}))
+                )
+            except:
+                rpc.weblogUpdates.ping(site.name, "http://%s/" % site.domain)
