@@ -5,7 +5,7 @@
 '''A library that provides a python interface to the Twitter API'''
 
 __author__ = 'dewitt@google.com'
-__version__ = '0.5'
+__version__ = '0.6-devel'
 
 
 import base64
@@ -15,6 +15,7 @@ import simplejson
 import sys
 import tempfile
 import time
+import calendar
 import urllib
 import urllib2
 import urlparse
@@ -31,6 +32,7 @@ class Status(object):
 
     status.created_at
     status.created_at_in_seconds # read only
+    status.favorited
     status.id
     status.text
     status.relative_created_at # read only
@@ -38,6 +40,7 @@ class Status(object):
   '''
   def __init__(self,
                created_at=None,
+               favorited=None,
                id=None,
                text=None,
                user=None,
@@ -51,6 +54,7 @@ class Status(object):
 
     Args:
       created_at: The time this status message was posted
+      favorited: Whether this is a favorite of the authenticated user
       id: The unique id of this status message
       text: The text of this status message
       relative_created_at:
@@ -62,6 +66,7 @@ class Status(object):
         wall clock time.
     '''
     self.created_at = created_at
+    self.favorited = favorited
     self.id = id
     self.text = text
     self.user = user
@@ -92,11 +97,30 @@ class Status(object):
     Returns:
       The time this status message was posted, in seconds since the epoch.
     '''
-    return time.mktime(time.strptime(self.created_at, '%a %b %d %H:%M:%S +0000 %Y'))
+    return calendar.timegm(time.strptime(self.created_at, '%a %b %d %H:%M:%S +0000 %Y'))
 
   created_at_in_seconds = property(GetCreatedAtInSeconds,
                                    doc="The time this status message was "
                                        "posted, in seconds since the epoch")
+
+  def GetFavorited(self):
+    '''Get the favorited setting of this status message.
+
+    Returns:
+      True if this status message is favorited; False otherwise
+    '''
+    return self._favorited
+
+  def SetFavorited(self, favorited):
+    '''Set the favorited state of this status message.
+
+    Args:
+      favorited: boolean True/False favorited state of this status message
+    '''
+    self._favorited = favorited
+
+  favorited = property(GetFavorited, SetFavorited,
+                       doc='The favorited state of this status message.')
 
   def GetId(self):
     '''Get the unique id of this status message.
@@ -197,7 +221,7 @@ class Status(object):
       in seconds since the epoch.
     '''
     if self._now is None:
-      self._now = time.mktime(time.gmtime())
+      self._now = time.time()
     return self._now
 
   def SetNow(self, now):
@@ -257,6 +281,8 @@ class Status(object):
     data = {}
     if self.created_at:
       data['created_at'] = self.created_at
+    if self.favorited:
+      data['favorited'] = self.favorited
     if self.id:
       data['id'] = self.id
     if self.text:
@@ -279,6 +305,7 @@ class Status(object):
     else:
       user = None
     return Status(created_at=data.get('created_at', None),
+                  favorited=data.get('favorited', None),
                   id=data.get('id', None),
                   text=data.get('text', None),
                   user=user)
@@ -644,7 +671,7 @@ class DirectMessage(object):
     Returns:
       The time this direct message was posted, in seconds since the epoch.
     '''
-    return time.mktime(time.strptime(self.created_at, '%a %b %d %H:%M:%S +0000 %Y'))
+    return calendar.timegm(time.strptime(self.created_at, '%a %b %d %H:%M:%S +0000 %Y'))
 
   created_at_in_seconds = property(GetCreatedAtInSeconds,
                                    doc="The time this direct message was "
@@ -902,6 +929,7 @@ class Api(object):
     self._cache_timeout = Api.DEFAULT_CACHE_TIMEOUT
     self._InitializeRequestHeaders(request_headers)
     self._InitializeUserAgent()
+    self._InitializeDefaultParameters()
     self._input_encoding = input_encoding
     self.SetCredentials(username, password)
 
@@ -1227,6 +1255,38 @@ class Api(object):
     data = simplejson.loads(json)
     return User.NewFromJsonDict(data)
 
+  def CreateFavorite(self, status):
+    '''Favorites the status specified in the status parameter as the authenticating user.
+    Returns the favorite status when successful.
+
+    The twitter.Api instance must be authenticated.
+
+    Args:
+      The twitter.Status instance to mark as a favorite.
+    Returns:
+      A twitter.Status instance representing the newly-marked favorite.
+    '''
+    url = 'http://twitter.com/favorites/create/%s.json' % status.id
+    json = self._FetchUrl(url, post_data={})
+    data = simplejson.loads(json)
+    return Status.NewFromJsonDict(data)
+
+  def DestroyFavorite(self, status):
+    '''Un-favorites the status specified in the ID parameter as the authenticating user.
+    Returns the un-favorited status in the requested format when successful.
+
+    The twitter.Api instance must be authenticated.
+
+    Args:
+      The twitter.Status to unmark as a favorite.
+    Returns:
+      A twitter.Status instance representing the newly-unmarked favorite.
+    '''
+    url = 'http://twitter.com/favorites/destroy/%s.json' % status.id
+    json = self._FetchUrl(url, post_data={})
+    data = simplejson.loads(json)
+    return Status.NewFromJsonDict(data)
+
   def SetCredentials(self, username, password):
     '''Set the username and password for this instance
 
@@ -1293,6 +1353,20 @@ class Api(object):
     self._request_headers['X-Twitter-Client-URL'] = url
     self._request_headers['X-Twitter-Client-Version'] = version
 
+  def SetSource(self, source):
+    '''Suggest the "from source" value to be displayed on the Twitter web site.
+
+    The value of the 'source' parameter must be first recognized by
+    the Twitter server.  New source values are authorized on a case by
+    case basis by the Twitter development team.
+
+    Args:
+      source:
+        The source name as a string.  Will be sent to the server as
+        the 'source' parameter.
+    '''
+    self._default_params['source'] = source
+
   def _BuildUrl(self, url, path_elements=None, extra_params=None):
     # Break url into consituent parts
     (scheme, netloc, path, params, query, fragment) = urlparse.urlparse(url)
@@ -1327,6 +1401,9 @@ class Api(object):
     user_agent = 'Python-urllib/%s (python-twitter/%s)' % \
                  (self._urllib.__version__, twitter.__version__)
     self.SetUserAgent(user_agent)
+
+  def _InitializeDefaultParameters(self):
+    self._default_params = {}
 
   def _AddAuthorizationHeader(self, username, password):
     if username and password:
@@ -1395,7 +1472,7 @@ class Api(object):
                 post_data=None,
                 parameters=None,
                 no_cache=None):
-    """Fetch a URL, optionally caching for a specified time.
+    '''Fetch a URL, optionally caching for a specified time.
 
     Args:
       url: The URL to retrieve
@@ -1408,9 +1485,16 @@ class Api(object):
 
     Returns:
       A string containing the body of the response.
-    """
+    '''
+    # Build the extra parameters dict
+    extra_params = {}
+    if self._default_params:
+      extra_params.update(self._default_params)
+    if parameters:
+      extra_params.update(parameters)
+
     # Add key/value parameters to the query string of the url
-    url = self._BuildUrl(url, extra_params=parameters)
+    url = self._BuildUrl(url, extra_params=extra_params)
 
     # Get a url opener that can handle basic auth
     opener = self._GetOpener(url, username=self._username, password=self._password)
@@ -1492,11 +1576,14 @@ class _FileCache(object):
 
   def _GetUsername(self):
     '''Attempt to find the username in a cross-platform fashion.'''
-    return os.getenv('USER') or \
-        os.getenv('LOGNAME') or \
-        os.getenv('USERNAME') or \
-        os.getlogin() or \
-        'nobody'
+    try:
+      return os.getenv('USER') or \
+             os.getenv('LOGNAME') or \
+             os.getenv('USERNAME') or \
+             os.getlogin() or \
+             'nobody'
+    except (IOError, OSError), e:
+      return 'nobody'
 
   def _GetTmpCachePath(self):
     username = self._GetUsername()
