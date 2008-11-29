@@ -390,8 +390,8 @@ form li p.error {
 body.dual #Main {
     float: left;
     display: inline;
-    width: 709px;
-    margin-right: 20px;
+    width: 690px;
+    margin-right: 39px;
 }
 
 #Content img {
@@ -408,7 +408,7 @@ ul.toolbar {
 }
 
 body.dual ul.toolbar {
-    width: 709px;
+    width: 690px;
 }
 
 ul.toolbar li {
@@ -660,7 +660,7 @@ p.stand-by {
 }
 
 body.dual #Pagination {
-    width: 709px;
+    width: 690px;
 }
 
 #Pagination li {
