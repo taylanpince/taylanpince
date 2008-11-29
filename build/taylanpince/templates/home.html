@@ -8,6 +8,7 @@
 
 {% block header %}Recent Updates{% endblock %}
 
+
 {% block content %}
 
 {% load_recent_posts 5 as posts %}
@@ -17,5 +18,12 @@
 {% include "blog/post_teaser.html" %}
 
 {% endfor %}
+
+{% endblock %}
+
+
+{% block sidebar %}
+
+{% load_recent_tweets %}
 
 {% endblock %}

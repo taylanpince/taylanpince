@@ -76,6 +76,9 @@ BLOG_INDEXES = (
     'http://rpc.weblogs.com/RPC2',
 )
 
+TWITTER_USERNAME = 'taylanpince'
+TWITTER_PASSWORD = 'asterix'
+
 try:
     from settings_local import *
 except:

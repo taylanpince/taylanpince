@@ -1,6 +1,10 @@
 import re
 
 from django import template
+from django.conf import settings
+from django.core.cache import cache
+
+from twitter import Api as TwitterAPI
 
 from blog.models import Post, Category
 
@@ -48,4 +52,20 @@ def load_recent_posts(parser, token):
 def load_categories():
     return {
         "categories": Category.objects.all(),
+    }
+
+
+@register.inclusion_tag("blog/tweets.html")
+def load_recent_tweets():
+    key = "recent_tweets"
+    tweets = cache.get(key)
+    
+    if not tweets:
+        api = TwitterAPI(username=settings.TWITTER_USERNAME, password=settings.TWITTER_PASSWORD)
+        tweets = api.GetUserTimeline(settings.TWITTER_USERNAME)
+        
+        cache.set(key, tweets, 60 * 60)
+    
+    return {
+        "tweets": tweets,
     }
