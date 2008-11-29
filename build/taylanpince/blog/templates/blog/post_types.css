@@ -1,0 +1,7 @@
+{% for type in types %}
+{% if type.icon %}
+h2.{{ type.slug }} a {
+    background-image: url("{{ type.icon.url }}");
+}
+{% endif %}
+{% endfor %}

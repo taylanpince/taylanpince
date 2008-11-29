@@ -19,4 +19,7 @@ urlpatterns = patterns("blog.views",
     
     # Tag Detail
     url(r"^tags/(?P<tag>[a-zA-Z0-9\.]+)/$", "tag_detail", name="blog_tag_detail"),
+    
+    # Post Type Styles
+    url(r"^post_types\.css$", "post_type_styles", name="blog_post_type_styles"),
 )

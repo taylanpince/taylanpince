@@ -89,6 +89,15 @@ def tag_detail(request, tag):
     )
 
 
+def post_type_styles(request):
+    """
+    Renders a CSS file with PostType icons
+    """
+    return render_to_response("blog/post_types.css", {
+        "types": PostType.objects.all(),
+    }, context_instance=RequestContext(request), mimetype="text/css")
+
+
 def comment_detail(request, id):
     """
     Renders a single comment

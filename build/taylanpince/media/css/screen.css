@@ -39,6 +39,12 @@ h2 {
     margin: 0px 0px 20px 0px;
 }
 
+h2 a {
+    background-repeat: no-repeat;
+    background-position: 100% 45%;
+    padding-right: 22px !important;
+}
+
 h2 p {
     line-height: 30px;
 }
