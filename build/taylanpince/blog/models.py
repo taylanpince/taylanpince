@@ -48,7 +48,7 @@ class PostType(models.Model):
     """
     title = models.CharField(_("Title"), max_length=100)
     slug = AutoSlugField(_("Slug"), populate_from="title")
-    icon = models.ImageField(_("Icon"), upload_to="blog/icons", blank=True, null=True)
+    icon = models.ImageField(_("Icon"), upload_to="files/blog/icons", blank=True, null=True)
     
     class Meta:
         verbose_name = _("Post Type")
