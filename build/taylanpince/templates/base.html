@@ -61,8 +61,18 @@
             {% endif %}
             
             <h1>{% block header %}{% endblock %}</h1>
-        
-            {% block content %}{% endblock %}
+            
+            <div id="Main">
+            
+                {% block content %}{% endblock %}
+            
+            </div>
+            
+            <div id="Sidebar">
+                
+                {% block sidebar %}{% endblock %}
+                
+            </div>
             
         </div>
     </div>

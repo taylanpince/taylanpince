@@ -1,5 +1,22 @@
 {% extends "base.html" %}
 
+{% load blog_utils %}
+{% load tagging_tags %}
+
 {% block title %}Blog{% endblock %}
 
 {% block nav_blog %}active{% endblock %}
+
+{% block sidebar %}
+
+{% load_categories %}
+
+<h2>Tags</h2>
+
+{% tag_cloud_for_model blog.Post as blog_tags %}
+
+{% for tag in blog_tags %}
+<a href="{% url blog_tag_detail tag.name %}" style="font-size: 1{{ tag.font_size }}px;">{{ tag.name }}</a>
+{% endfor %}
+
+{% endblock %}

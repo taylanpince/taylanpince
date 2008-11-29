@@ -2,7 +2,7 @@ import re
 
 from django import template
 
-from blog.models import Post
+from blog.models import Post, Category
 
 
 register = template.Library()
@@ -42,3 +42,10 @@ def load_recent_posts(parser, token):
     limit, var_name = m.groups()
     
     return RecentPostsLoader(limit, var_name)
+
+
+@register.inclusion_tag("blog/category_list.html")
+def load_categories():
+    return {
+        "categories": Category.objects.all(),
+    }

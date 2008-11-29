@@ -1,4 +1,5 @@
 from django.core.urlresolvers import reverse
+from django.contrib.sites.models import Site
 from django.utils.feedgenerator import Atom1Feed
 from django.contrib.syndication.feeds import Feed
 
@@ -19,7 +20,7 @@ class RssLatestPosts(Feed):
     copyright = "Copyright (c) 2008, Taylan Pince"
     
     def link(self):
-        return reverse("blog_landing")
+        return "http://%s%s" % (Site.objects.get_current().domain, reverse("blog_landing"))
     
     def items(self):
         return Post.objects.all()[:15]

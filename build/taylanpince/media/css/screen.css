@@ -383,6 +383,15 @@ form li p.error {
 
 #ContentWrapper {
     width: 870px;
+    overflow: hidden;
+    position: static;
+}
+
+body.dual #Main {
+    float: left;
+    display: inline;
+    width: 709px;
+    margin-right: 20px;
 }
 
 #Content img {
@@ -398,6 +407,10 @@ ul.toolbar {
     margin: 0px 0px 30px 0px;
 }
 
+body.dual ul.toolbar {
+    width: 709px;
+}
+
 ul.toolbar li {
     float: right;
     display: inline;
@@ -410,6 +423,30 @@ ul.toolbar li {
 
 ul.toolbar li.first-child {
     border: none;
+}
+
+/* @end */
+
+
+/* @group Sidebar */
+
+#Sidebar {
+    display: none;
+}
+
+body.dual #Sidebar {
+    float: left;
+    display: inline;
+    width: 141px;
+}
+
+#Sidebar ul {
+    margin-bottom: 40px;
+}
+
+#Sidebar li {
+    list-style-type: none;
+    margin-left: 0px;
 }
 
 /* @end */
@@ -620,6 +657,10 @@ p.stand-by {
     position: static;
     overflow: hidden;
     margin: 0px;
+}
+
+body.dual #Pagination {
+    width: 709px;
 }
 
 #Pagination li {
