@@ -67,7 +67,6 @@ REPLY_RE = re.compile(r"@([\w]+?)\b")
 @register.inclusion_tag("blog/tweets.html")
 def load_recent_tweets():
     key = "recent_tweets"
-    cache.delete(key)
     tweets = cache.get(key)
     
     if not tweets:
