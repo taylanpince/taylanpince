@@ -2,10 +2,12 @@
 {% if type.icon %}
 h2.{{ type.slug }} a {
     background-image: url("{{ type.icon.url }}");
+    padding-right: 22px !important;
 }
 {% endif %}
 {% endfor %}
 
 h2.twitter a {
     background-image: url("{{ MEDIA_URL }}images/icon-twitter.png");
+    padding-right: 22px !important;
 }
