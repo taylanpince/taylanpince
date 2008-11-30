@@ -74,8 +74,15 @@ def load_recent_tweets():
         tweets = api.GetUserTimeline(settings.TWITTER_USERNAME)
         
         for tweet in tweets:
-            tweet.text = URL_RE.sub(lambda m: '<a href="%(url)s">%(url)s</a>' % {"url": m.group()}, tweet.text)
-            tweet.text = REPLY_RE.sub(lambda m: '<a href="http://twitter.com/%(user)s">@%(user)s</a>' % {"user": m.group()[1:]}, tweet.text)
+            tweet.text = URL_RE.sub(
+                lambda m: '<a href="%(url)s">%(url)s</a>' % {"url": m.group()}, 
+                tweet.text
+            )
+            
+            tweet.text = REPLY_RE.sub(
+                lambda m: '<a href="http://twitter.com/%(user)s">@%(user)s</a>' % {"user": m.group()[1:]}, 
+                tweet.text
+            )
         
         cache.set(key, tweets, 60 * 60)
     
