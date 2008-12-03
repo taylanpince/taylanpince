@@ -64,10 +64,6 @@ def category_detail(request, slug):
             "pager_url": make_url_pattern(category.get_absolute_url(), request.GET),
         }
     )
-    
-    return render_to_response("blog/category_detail.html", {
-        "category": category,
-    }, context_instance=RequestContext(request))
 
 
 def tag_detail(request, tag):
