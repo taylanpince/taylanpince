@@ -1,6 +1,11 @@
 import re
 
-from markdown import Markdown, TextPreprocessor
+try:
+    from markdown2 import Markdown, TextPreprocessor
+except ImportError:
+    from markdown import Markdown, TextPreprocessor
+
+from smartypants import smartyPants
 
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
@@ -58,11 +63,26 @@ class CodeBlockPreprocessor(TextPreprocessor):
         return self.pattern.sub(repl, lines)
 
 
+class SmartyPantsPreprocessor(TextPreprocessor):
+    """
+    A Markdown preprocessor that implements SmartyPants for converting plain 
+    ASCII punctuation characters into typographically correct versions
+    """
+    pattern = re.compile(r'(.+?)(@@.+?@@ end|$)', re.S)
+    
+    def run(self, lines):
+        def repl(m):
+            return smartyPants(m.group(1)) + m.group(2)
+        
+        return self.pattern.sub(repl, lines)
+
+
 def parse_markdown(value):
     """
-    Parses a value into markdown syntax, using the pygments preprocessor
+    Parses a value into markdown syntax, using the pygments preprocessor and smartypants
     """
     md = Markdown()
-    md.textPreprocessors.insert(0, CodeBlockPreprocessor())
+    md.textPreprocessors.insert(0, SmartyPantsPreprocessor())
+    md.textPreprocessors.insert(1, CodeBlockPreprocessor())
     
     return md.convert(value)
