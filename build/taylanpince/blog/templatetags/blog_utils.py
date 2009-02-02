@@ -1,5 +1,7 @@
 import re
 
+from urllib2 import HTTPError
+
 from django import template
 from django.conf import settings
 from django.core.cache import cache
@@ -70,20 +72,23 @@ def load_recent_tweets():
     tweets = cache.get(key)
     
     if not tweets:
-        api = TwitterAPI(username=settings.TWITTER_USERNAME, password=settings.TWITTER_PASSWORD)
-        tweets = api.GetUserTimeline(settings.TWITTER_USERNAME)
+        try:
+            api = TwitterAPI(username=settings.TWITTER_USERNAME, password=settings.TWITTER_PASSWORD)
+            tweets = api.GetUserTimeline(settings.TWITTER_USERNAME)
+        except HTTPError:
+            tweets = []
         
         for tweet in tweets:
             tweet.text = URL_RE.sub(
                 lambda m: '<a href="%(url)s">%(url)s</a>' % {"url": m.group()}, 
                 tweet.text
             )
-            
+        
             tweet.text = REPLY_RE.sub(
                 lambda m: '<a href="http://twitter.com/%(user)s">@%(user)s</a>' % {"user": m.group()[1:]}, 
                 tweet.text
             )
-        
+    
         cache.set(key, tweets, 60 * 60)
     
     return {
