@@ -1,8 +1,8 @@
 def production():
     "Set the variables for the production environment"
-    set(fab_hosts=["72.47.216.91"])
-    set(fab_user="root")
-    set(remote_dir="/var/www/vhosts/taylanpince.com")
+    set(fab_hosts=["67.23.4.212"])
+    set(fab_user="taylan")
+    set(remote_dir="/home/taylan/sites/taylanpince")
 
 
 def deploy(hash="HEAD"):
@@ -48,7 +48,7 @@ def deploy(hash="HEAD"):
     run("mv $(remote_dir)/deploy $(remote_dir)/app")
     
     # Restart Apache
-    run("/usr/sbin/apachectl graceful")
+    sudo("/etc/init.d/apache2 restart")
     
     # Remove the temporary local directory
     local("rm -rf ../tmp")
