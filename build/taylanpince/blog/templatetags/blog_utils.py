@@ -1,6 +1,6 @@
 import re
 
-from urllib2 import HTTPError
+from urllib2 import HTTPError, URLError
 
 from django import template
 from django.conf import settings
@@ -75,7 +75,7 @@ def load_recent_tweets():
         try:
             api = TwitterAPI(username=settings.TWITTER_USERNAME, password=settings.TWITTER_PASSWORD)
             tweets = api.GetUserTimeline(settings.TWITTER_USERNAME)
-        except HTTPError:
+        except (HTTPError, URLError):
             tweets = []
         
         for tweet in tweets:
