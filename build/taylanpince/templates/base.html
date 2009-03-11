@@ -25,7 +25,7 @@
         </style>
     <![endif]-->
     
-    {% block feed %}<link rel="alternate" href="{% url feeds "posts" %}" type="application/rss+xml" title="Blog Posts" />{% endblock %}
+    {% block feed %}<link rel="alternate" href="http://feeds2.feedburner.com/taylanpince-posts" type="application/rss+xml" title="Blog Posts" />{% endblock %}
     
 	<link rel="shortcut icon" href="{{ MEDIA_URL }}images/favicon.ico" />
 	
@@ -119,7 +119,7 @@
                 <h4>RSS Feeds</h4>
                 <ul class="rss">
                     {% comment %}<li><a href="#">Combined Feed</a></li>{% endcomment %}
-                    <li><a href="{% url feeds "posts" %}">Blog Posts</a></li>
+                    <li><a href="http://feeds2.feedburner.com/taylanpince-posts">Blog Posts</a></li>
                     {% comment %}<li><a href="#">Links</a></li>{% endcomment %}
                     {% comment %}<li><a href="#">Reviews</a></li>{% endcomment %}
                 </ul>
