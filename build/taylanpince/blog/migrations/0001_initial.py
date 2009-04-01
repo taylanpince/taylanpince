@@ -1,7 +1,10 @@
+from django.db import models
+from django.utils.translation import ugettext_lazy as _
 
 from south.db import db
-from django.db import models
+
 from blog.models import *
+
 
 class Migration:
     
