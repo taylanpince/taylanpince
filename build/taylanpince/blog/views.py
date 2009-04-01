@@ -38,10 +38,16 @@ def post_detail(request, slug):
     Renders the blog post detail page
     """
     post = get_object_or_404(Post.objects, slug=slug)
+    form = CommentForm(auto_id="%s", prefix="CommentForm", initial={
+        "author": request.COOKIES.get("comment_author", ""),
+        "email": request.COOKIES.get("comment_email", ""),
+        "url": request.COOKIES.get("comment_url", ""),
+        "remember": request.COOKIES.has_key("comment_author") or request.COOKIES.has_key("comment_email") or request.COOKIES.has_key("comment_url"),
+    })
     
     return render_to_response("blog/post_detail.html", {
         "post": post,
-        "form": CommentForm(auto_id="%s", prefix="CommentForm")
+        "form": form,
     }, context_instance=RequestContext(request))
 
 
@@ -126,29 +132,42 @@ def submit_comment(request, slug):
         else:
             request.notifications.create(_("Your comment was posted, but it won't be published until approved."), "warning")
         
-        if not request.is_ajax():
-            return HttpResponseRedirect(post.get_absolute_url())
+        if request.is_ajax():
+            response = render_to_response("blog/comment_submit.json", {
+                "errors": None,
+                "comment": comment,
+                "post": post,
+                "form": form,
+            }, context_instance=RequestContext(request), mimetype="application/json")
+        else:
+            response = HttpResponseRedirect(post.get_absolute_url())
+        
+        if form.cleaned_data.get("remember", False):
+            response.set_cookie("comment_author", value=comment.author)
+            response.set_cookie("comment_email", value=comment.email)
+            response.set_cookie("comment_url", value=comment.url)
+        else:
+            response.delete_cookie("comment_author")
+            response.delete_cookie("comment_email")
+            response.delete_cookie("comment_url")
+        
+        return response
     else:
         request.notifications.create(_("There were some errors with your comment submission."), "error")
         
-        comment = None
-    
-    if request.is_ajax():
-        template = "blog/comment_submit.json"
-        mimetype = "application/json"
-        
-        if form.errors:
+        if request.is_ajax():
+            template = "blog/comment_submit.json"
+            mimetype = "application/json"
+            
             errors = simplejson.dumps(form.errors, cls=LazyEncoder, ensure_ascii=False)
         else:
-            errors = None
-    else:
-        template = "blog/comment_submit.html"
-        mimetype = "text/html; charset=utf-8"
-        errors = form.errors
-    
-    return render_to_response(template, {
-        "errors": errors,
-        "comment": comment,
-        "post": post,
-        "form": form,
-    }, context_instance=RequestContext(request), mimetype=mimetype)
+            template = "blog/comment_submit.html"
+            mimetype = "text/html; charset=utf-8"
+            errors = form.errors
+        
+        return render_to_response(template, {
+            "errors": errors,
+            "comment": None,
+            "post": post,
+            "form": form,
+        }, context_instance=RequestContext(request), mimetype=mimetype)

@@ -77,7 +77,7 @@ $.extend($.namespace("core.Comments"), {
                 });
 	        }
 	        
-	        $("#CommentForm")[0].reset();
+	        $("#CommentForm").find("textarea").val("");
 	    }
 	    
 	    $("#CommentForm").find("input[@type=submit]").attr("disabled", false);
