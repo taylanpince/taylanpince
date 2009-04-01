@@ -61,6 +61,7 @@ INSTALLED_APPS = (
     'tagging',
     'batchadmin',
     'core.utils',
+    'south',
     
     'blog',
 )
