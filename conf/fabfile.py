@@ -47,6 +47,9 @@ def deploy(hash="HEAD"):
     run("rm -rf $(remote_dir)/app")
     run("mv $(remote_dir)/deploy $(remote_dir)/app")
     
+    # Sync the database, apply migrations
+    run("cd $(remote_dir)/app/taylanpince; export PYTHONPATH=../libs; ./manage.py syncdb; ./manage.py migrate")
+    
     # Restart Apache
     sudo("/etc/init.d/apache2 restart")
     
