@@ -119,7 +119,7 @@ def submit_comment(request, slug):
     post = get_object_or_404(Post.objects, slug=slug)
     form = CommentForm(request.POST, auto_id="%s", prefix="CommentForm")
     
-    if form.is_valid():
+    if form.is_valid() and post.allow_comments:
         comment = form.save(commit=False)
         
         comment.ip_address = request.META.get("REMOTE_ADDR", None)

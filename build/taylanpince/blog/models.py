@@ -86,6 +86,7 @@ class Post(models.Model):
     # Publishing
     published = models.BooleanField(_("Published"), default=True)
     slug = AutoSlugField(_("Slug"), populate_from="title")
+    allow_comments = models.BooleanField(_("Allow Comments"), default=True)
     
     # Managers
     admin_objects = models.Manager()

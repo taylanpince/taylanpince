@@ -30,6 +30,8 @@
 </ul>
 {% endwith %}
 
+{% if post.allow_comments %}
 {% include "blog/comment_form.html" %}
+{% endif %}
 
 {% endblock %}

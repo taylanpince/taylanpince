@@ -30,7 +30,7 @@ class PostAdmin(admin.ModelAdmin):
             "fields": ("categories", "type"),
         }),
         (_("Publication Settings"), {
-            "fields": ("published", "slug", "creation_date"),
+            "fields": ("published", "allow_comments", "slug", "creation_date"),
             "classes": ["collapse"],
         }),
     )
