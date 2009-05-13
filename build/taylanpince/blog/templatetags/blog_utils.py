@@ -75,7 +75,7 @@ def load_recent_tweets():
         try:
             api = TwitterAPI(username=settings.TWITTER_USERNAME, password=settings.TWITTER_PASSWORD)
             tweets = api.GetUserTimeline(settings.TWITTER_USERNAME)
-        except (HTTPError, URLError):
+        except (HTTPError, URLError, ValueError):
             tweets = []
         
         for tweet in tweets:
