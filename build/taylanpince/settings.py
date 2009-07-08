@@ -56,12 +56,12 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.admin',
     
-    'django_extensions',
-    'sorl.thumbnail',
-    'tagging',
     'batchadmin',
     'core.utils',
+    'django_extensions',
+    'sorl.thumbnail',
     'south',
+    'tagging',
     
     'blog',
 )
