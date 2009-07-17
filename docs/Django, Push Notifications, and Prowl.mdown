@@ -1,0 +1,105 @@
+Django, Push Notifications, and Prowl
+=====================================
+
+One issue that I have had with this blog for a while has been the lack of 
+notifications when a new, legitimate comment is posted under one of my 
+articles. I don't get many comments, but when I do, I would like to be able 
+to respond right away. I don't like email notifications, so when 
+[Prowl](https://prowl.weks.net/) was announced this week, I was excited about 
+the possibility of sending push notifications to my iPhone whenever a new 
+comment was posted. It turned out to be much easier than I anticipated, 
+thanks to Jacob Burch's [Prowlpy](http://github.com/jacobb/prowlpy/tree/master) 
+module and Django's signals framework.
+
+To setup push notifications for anything, you need to get these done first:
+
+1. Register for an account at the [Prowl](https://prowl.weks.net/) site, then
+   go to iTunes Store and buy Prowl for your iPhone/iPod Touch
+
+2. After setting up your device, login to your account at the Prowl web site,
+   click on Settings, and generate an API key
+
+3. Download and install [Prowlpy](http://github.com/jacobb/prowlpy/tree/master) 
+   and [httplib2](http://code.google.com/p/httplib2/). I opted for simply 
+   putting Prowlpy somewhere on my PYTHONPATH, and installing httplib2 through
+   aptitude:
+
+        sudo apt-get install python-httplib2
+
+Now that you are ready, simply create a signals.py file under whichever Django 
+application you would like to use to send push notifications for, and use 
+something similar to this for sending out messages to the Prowl API:
+
+@@ python
+    from django.conf import settings
+    from django.contrib.sites.models import Site
+
+    from prowl.prowlpy import Prowl
+
+
+    def comment_notification(sender, instance, **kwargs):
+        """
+        Connects to the Prowl API to send a push notification
+        """
+        if not instance.pk:
+            prowl_api = Prowl(settings.PROWL_API_KEY)
+            site = Site.objects.get_current()
+
+            if prowl_api.verify_key():
+                try:
+                    prowl_api.post(
+                        application="taylanpince.com",
+                        event="New Comment",
+                        description="A new comment has been published under blog post: %(title)s\r\n%(link)s" % {
+                            "title": instance.post.title,
+                            "link": "http://%(domain)s%(path)s" % {
+                                "domain": site.domain,
+                                "path": instance.post.get_absolute_url(),
+                            }
+                        }
+                    )
+                except Exception:
+                    pass
+@@ end
+
+Obviously, you also need to put your Prowl API key that you got from your 
+account page earlier inside your settings.py file:
+
+@@ python
+    PROWL_API_KEY = 'YOUR_API_KEY'
+@@ end
+
+Finally, you have to link this signal to a model. In your models.py file, you 
+can have the model call this method as a pre_save signal:
+
+@@ python
+    from django.db.models.signals import pre_save
+    
+    from blog.signals import comment_notification
+
+    
+    class Comment(models.Model):
+      ...
+
+    pre_save.connect(comment_notification, Comment)
+@@ end
+
+You could, of course, call this signal post_save as well. That's up to you. In 
+my case, I also do some spam filtering through the [Akismet](http://akismet.com/) 
+API, so it makes more sense to handle all of that in a pre_save signal and 
+only send out a notification if a comment passes that check. I suggest you do 
+something similar - it wouldn't be fun to get push notifications for spam.
+
+Finally, I had to fork the Prawlpy script and make some minor modifications to 
+make sure the content is encoded properly. Unless you comment out the following 
+lines in Prowlpy, you will get urlencoded strings in your notification:
+
+@@ python
+    # URL-encode and string-ify keywords. Better type/content testing is needed here
+    application = urllib.quote(str(application))
+    event = urllib.quote(str(event))
+    description = urllib.quote(str(description))
+    priority = urllib.quote(str(priority))
+@@ end
+
+And that's it, now I will always be on top of the comments posted here!
