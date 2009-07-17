@@ -80,6 +80,8 @@ BLOG_INDEXES = (
 TWITTER_USERNAME = 'taylanpince'
 TWITTER_PASSWORD = 'asterix'
 
+PROWL_API_KEY = 'a142dfd34b4f803d2c9c181e6108306882471387'
+
 try:
     from settings_local import *
 except:

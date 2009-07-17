@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
 
 from akismet import Akismet
+from prowl.prowlpy import Prowl
 from xmlrpclib import ServerProxy
 
 
@@ -26,6 +27,25 @@ def moderate_comment(sender, instance, **kwargs):
                     "comment_author_url": instance.url,
                 }, build_data=True):
                     instance.published = True
+                    
+                    prowl_api = Prowl(settings.PROWL_API_KEY)
+                    site = Site.objects.get_current()
+
+                    if prowl_api.verify_key():
+                        try:
+                            prowl_api.post(
+                                application="taylanpince.com",
+                                event="New Comment",
+                                description="A new comment has been published under blog post: %(title)s\r\n%(link)s" % {
+                                    "title": instance.post.title,
+                                    "link": "http://%(domain)s%(path)s" % {
+                                        "domain": site.domain,
+                                        "path": instance.post.get_absolute_url(),
+                                    }
+                                }
+                            )
+                        except Exception, message:
+                            print "PROWL FAIL: %s", message
             except:
                 pass
 
