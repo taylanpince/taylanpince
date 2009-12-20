@@ -18,7 +18,9 @@
 
 {% if piece.photos %}
 {% for photo in piece.photos %}
+{% if piece.link %}<a href="{{ piece.link }}" class="no-border" rel="nofollow">{% endif %}
 <img src="{% thumbnail photo.image.name 690x500 crop %}" alt="{{ photo.title }}" />
+{% if piece.link %}</a>{% endif %}
 {% endfor %}
 {% endif %}
 
@@ -29,8 +31,8 @@
 
 {% block sidebar %}
 
-<p><strong>Client:</strong> {{ piece.client }}</p>
-<p><strong>Date:</strong> {{ piece.creation_date|date:"F Y" }}</p>
-<p><strong>Responsibilities:</strong> {{ piece.responsibilities }}</p>
+<p class="low-margin"><strong>Client:</strong> {{ piece.client }}</p>
+<p class="low-margin"><strong>Date:</strong> {{ piece.creation_date|date:"F Y" }}</p>
+<p class="low-margin"><strong>Responsibilities:</strong> {{ piece.responsibilities }}</p>
 
 {% endblock %}
