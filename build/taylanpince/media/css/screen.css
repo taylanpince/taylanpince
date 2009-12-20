@@ -8,9 +8,9 @@
 /* @group Global */
 
 body {
-    font: 13px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
-    background: #32331d url("../images/bg-header.png") top left repeat-x;
-    color: #333;
+    font: 14px Helvetica, Arial, sans-serif;
+    background-color: #101010;
+    color: #eee;
     line-height: 20px;
     opacity: 0.999999;
 }
@@ -25,16 +25,22 @@ body {
 /* @group Headers */
 
 h1 {
-    font: 50px Georgia, "Times New Roman", Times, serif;
-    color: #787746;
+    font: 50px Helvetica, Arial, sans-serif;
+    color: #919191;
     padding: 0px 0px 12px 0px;
-    border-bottom: 1px solid #787746;
+    border-bottom: 1px solid #2a2a2a;
     margin: 0px 0px 25px 0px;
+}
+
+body.home h1 {
+	font-size: 72px;
+	border-bottom: none;
+	margin-bottom: 0px;
 }
 
 h2 {
     font: 20px Georgia, "Times New Roman", Times, serif;
-    color: #363636;
+    color: #eee;
     line-height: 30px;
     margin: 0px 0px 20px 0px;
 }
@@ -51,18 +57,18 @@ h2 p {
 body.teaser-list h2 a,
 body.teaser-list h2 a:link,
 body.teaser-list h2 a:active {
-    color: #363636;
-    border-bottom-color: #363636;
+    color: #eee;
+    border-bottom-color: #eee;
 }
 
 body.teaser-list h2 a:visited {
-    color: #565656;
-    border-bottom-color: #565656;
+    color: #919191;
+    border-bottom-color: #919191;
 }
 
 h3 {
     font: 20px Georgia, "Times New Roman", Times, serif;
-    color: #787746;
+    color: #eee;
     margin: 0px 0px 10px 0px;
 }
 
@@ -93,10 +99,10 @@ blockquote {
     font: 16px Georgia, "Times New Roman", Times, serif;
     font-style: italic;
     line-height: 24px;
-    border-left: 3px solid #787746;
+    border-left: 3px solid #2a2a2a;
     padding: 0px 0px 0px 20px;
 	margin: 0px 0px 20px 0px;
-	color: #787746;
+	color: #2a2a2a;
 }
 
 q {
@@ -104,10 +110,11 @@ q {
 }
 
 pre {
+	color: #333;
 	overflow: hidden;
 	padding: 10px 0px 10px 20px;
 	margin: 0px;
-	background-color: #b4af91;
+	background-color: #c9c9c9;
 	border: 1px dashed #32331d;
 }
 
@@ -121,8 +128,10 @@ p code {
 }
 
 hr {
+	border: none;
 	margin: 0px 0px 20px 0px;
-	border-top: 1px solid #787746;
+	border-top: 1px solid #2a2a2a;
+	background-color: transparent;
 }
 
 div.hr {
@@ -139,7 +148,7 @@ span.amp,
 span.arrow {
     font-family: Baskerville, "Goudy Old Style", "Palatino", "Book Antiqua", serif;
     font-style: italic;
-    color: #787746;
+    color: #2a2a2a;
 }
 
 span.arrow {
@@ -154,6 +163,24 @@ span.faded {
     color: #5f5f5f;
 }
 
+span.light {
+	color: #eee;
+}
+
+p.right {
+	text-align: right;
+}
+
+p.bottom-border {
+	border-bottom: 1px solid #2a2a2a;
+	padding-bottom: 10px;
+	margin-bottom: 25px;
+}
+
+p.large {
+	font-size: 16px;
+}
+
 /* @end */
 
 
@@ -163,20 +190,20 @@ a,
 a:link,
 a:active,
 a:visited {
-    color: #c03000;
+    color: #c36214;
 	text-decoration: none;
-	border-bottom: 1px solid #c03000;
+	border-bottom: 1px solid #c36214;
 	padding: 0px 0px 2px 0px;
 }
 
 a:visited {
-    color: #c06c00;
-    border-bottom-color: #c06c00;
+    color: #c3824d;
+    border-bottom-color: #c3824d;
 }
 
 a:hover {
-    background-color: #b4af91;
 	border: none;
+	color: #c3824d;
 }
 
 a.no-border {
@@ -222,15 +249,17 @@ input.text,
 select,
 textarea {
     font: 14px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
-	border: 4px solid #b4af91;
-	background-color: #d0cdb8;
+	border: 4px solid #2a2a2a;
+	background-color: #101010;
 	padding: 4px;
 	margin: 0px;
+	color: #FFF;
 }
 
 input:focus,
 textarea:focus {
-    background-color: #FFF;
+	color: #333;
+    background-color: #eee;
 }
 
 input.submit,
@@ -238,7 +267,7 @@ input.button {
     border: 2px solid #6d1b00;
     margin: 0px 10px 0px 0px;
     padding: 0px 6px 2px 6px;
-    background-color: #c03000;
+    background-color: #c36214;
     color: #FFF;
     font-size: 13px;
 }
@@ -310,23 +339,15 @@ form li p.error {
 /* @group Header */
 
 #Header {
-    height: 100px;
-    padding: 0px 0px 0px 25px;
-    font: 16px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
-    color: #8f8f8f;
-    text-shadow: 0 0 0 #000;
+    height: 45px;
+	background-color: #c9c9c9;
+	border-bottom: 5px solid #c36214;
 }
 
 #HeaderWrapper {
-    width: 870px;
-}
-
-#HeaderLogo {
-    float: right;
-    display: inline;
-    border: none;
-    padding: 0px;
-    background-color: transparent;
+    width: 890px;
+	margin: 0px auto 0px auto;
+	padding: 8px 0px 0px 0px;
 }
 
 /* @end */
@@ -334,51 +355,28 @@ form li p.error {
 
 /* @group Navigation */
 
-#Navigation {
-    overflow: hidden;
-    position: static;
-    width: 680px;
-    height: 100px;
-    margin: 0px 0px 0px 0px;
-    padding: 0px 0px 0px 0px;
+#Navigation li {
+    float: right;
+    display: inline;
+	margin: 0px 0px 0px 40px;
+	padding: 0px 0px 9px 0px;
 }
 
-#Navigation li {
-    float: left;
-    display: inline;
-    width: 120px;
-    margin: 41px 40px 0px 0px;
+#Navigation li.active {
+	background: transparent url("../images/bg-nav-active.png") 50% 100% no-repeat;
 }
 
 #Navigation li a {
-    display: block;
-    height: 51px;
-    padding: 10px 5px 10px 5px;
-    font: 12px Georgia, "Times New Roman", Times, serif;
-    font-style: italic;
-    color: #FFF;
-    border: none;
-    text-shadow: 0 0 0 #000;
-}
-
-#Navigation li a:hover,
-#Navigation li a.active {
-    background-color: #c03000;
-}
-
-#Navigation li a strong {
-    display: block;
-    font: 16px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, sans-serif;
-    font-style: normal;
+    font: 24px Helvetica, Arial, serif;
     font-weight: bold;
-    color: #d0cdb8;
-    line-height: 20px;
-    margin: 0px 0px 4px 0px;
+    color: #101010;
+    border: none;
 }
 
-#Navigation li a:hover strong,
-#Navigation li a.active strong {
-    color: #FFF;
+#Navigation li.active a,
+#Navigation li a:hover {
+    color: #c36214;
+	background-color: transparent;
 }
 
 /* @end */
@@ -387,14 +385,11 @@ form li p.error {
 /* @group Content */
 
 #Content {
-    padding: 25px 0px 20px 25px;
-    background: #d0cdb8 url("../images/bg-body.png") top left repeat-x;
-}
-
-#ContentWrapper {
-    width: 870px;
+    width: 890px;
     overflow: hidden;
-    position: static;
+    position: relative;
+	margin: 0px auto 0px auto;
+    padding: 15px 0px 20px 0px;
 }
 
 body.dual #Main {
@@ -406,14 +401,14 @@ body.dual #Main {
 
 #Content img {
     margin: 0px 0px 20px 0px;
-    border: 10px solid #b4af91;
+    border: 10px solid #2a2a2a;
 }
 
 ul.toolbar {
     overflow: hidden;
     position: static;
     width: 870px;
-    border-top: 1px solid #787746;
+    border-top: 1px solid #2a2a2a;
     margin: 0px 0px 30px 0px;
 }
 
@@ -425,7 +420,7 @@ ul.toolbar li {
     float: right;
     display: inline;
     list-style-type: none;
-    border-right: 1px solid #787746;
+    border-right: 1px solid #2a2a2a;
     padding: 6px 12px 6px 0px;
     margin: 0px 0px 0px 15px;
     font-size: 12px;
@@ -433,6 +428,19 @@ ul.toolbar li {
 
 ul.toolbar li.first-child {
     border: none;
+}
+
+#AvailabilitySticker {
+	position: absolute;
+	width: 88px;
+	height: 89px;
+	top: 10px;
+	right: 10px;
+	border-bottom: none;
+}
+
+#AvailabilitySticker img {
+	border: none;
 }
 
 /* @end */
@@ -472,7 +480,7 @@ body.dual #Sidebar {
     overflow: hidden;
     position: static;
     width: 870px;
-    border-top: 1px solid #787746;
+    border-top: 1px solid #2a2a2a;
     padding: 15px 0px 0px 0px;
     margin: 0px 0px 20px 0px;
 }
@@ -505,7 +513,7 @@ body.dual #Sidebar {
     overflow: hidden;
     position: static;
     padding: 15px 0px 0px 0px;
-    border-top: 1px solid #787746;
+    border-top: 1px solid #2a2a2a;
 }
 
 #CommentForm ul {
@@ -540,14 +548,17 @@ body.dual #Sidebar {
 /* @group Footer */
 
 #Footer {
-    padding: 20px 0px 16px 25px;
-    background: #c0bf99 url("../images/bg-footer.png") bottom left repeat-x;
+	color: #2a2a2a;
+    padding: 20px 0px 16px 0px;
+    background-color: #c9c9c9;
+	border-top: 5px solid #2a2a2a;
 }
 
 #FooterWrapper {
     overflow: hidden;
     position: static;
-    width: 870px;
+    width: 890px;
+	margin: 0px auto 0px auto;
 }
 
 #FooterWrapper li {
@@ -622,12 +633,13 @@ p.warning,
 p.success,
 p.stand-by,
 #Notifications li {
+	color: #333;
     background-position: 5px 3px;
     background-repeat: no-repeat;
     list-style-type: none;
     margin: 0px 0px 10px 0px;
     padding: 5px 5px 5px 41px;
-    border: 4px solid #B4AF91;
+    border: 4px solid #2a2a2a;
     font-weight: bold;
 }
 
@@ -685,17 +697,17 @@ body.dual #Pagination {
 }
 
 #Pagination li a {
-    border: 2px solid #6d1b00;
+    border: 2px solid #2a2a2a;
     margin: 0px 10px 0px 0px;
     padding: 0px 6px 2px 6px;
-    background-color: #c03000;
+    background-color: #c36214;
     color: #FFF;
     font-size: 13px;
 }
 
 #Pagination li a.active,
 #Pagination li a.active:visited {
-    background-color: #787745;
+    background-color: #2a2a2a;
     border-color: #32331d;
     color: #FFF;
 }

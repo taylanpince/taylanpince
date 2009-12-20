@@ -2,28 +2,17 @@
 
 {% load blog_utils %}
 
-{% block class %}home teaser-list dual{% endblock %}
+{% block class %}home{% endblock %}
 
 {% block nav_home %}active{% endblock %}
 
-{% block header %}Recent Updates{% endblock %}
+{% block header %}Hello, and welcome.<br /><span class="light">My name is Taylan Pince.<br />I build things*.</span>{% endblock %}
 
 
 {% block content %}
 
-{% load_recent_posts 5 as posts %}
+<a href="#" id="AvailabilitySticker"><img src="{{ MEDIA_URL }}images/icon-availability-sticker.png" alt="Hire Me: Available for February 2010" /></a>
 
-{% for post in posts %}
-
-{% include "blog/post_teaser.html" %}
-
-{% endfor %}
-
-{% endblock %}
-
-
-{% block sidebar %}
-
-{% load_recent_tweets %}
+<p class="right bottom-border large">* <a href="#">iphone apps</a>, <a href="#">web solutions</a>, <a href="#">mobile sites</a></p>
 
 {% endblock %}

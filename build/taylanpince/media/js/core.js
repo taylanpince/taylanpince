@@ -23,7 +23,7 @@ $.extend($.namespace("core"), {
 		$("input[@type=checkbox]").addClass("checkbox");
 		$("input[@type=image]").addClass("image");
         
-		$("hr").wrap('<div class="hr"></div>');
+		//$("hr").wrap('<div class="hr"></div>');
 	},
 	
 	render_template : function(template, values) {
