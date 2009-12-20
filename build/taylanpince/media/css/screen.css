@@ -185,6 +185,16 @@ p.low-margin {
 	margin-bottom: 10px;
 }
 
+p.high-line {
+	line-height: 26px;
+}
+
+img.right {
+	float: right;
+	display: inline;
+	margin: 0px 0px 10px 10px !important;
+}
+
 /* @end */
 
 
