@@ -1,18 +1,39 @@
 {% extends "base.html" %}
 
 {% load blog_utils %}
+{% load thumbnail %}
 
 {% block class %}home{% endblock %}
+{% block nav_work %}active{% endblock %}
 
-{% block nav_home %}active{% endblock %}
 
-{% block header %}Hello, and welcome.<br /><span class="light">My name is Taylan Pince.<br />I build things*.</span>{% endblock %}
-
+{% block header %}Hello, and welcome.<br /><span class="light">My name is Taylan Pince,<br />I build things*.</span>{% endblock %}
 
 {% block content %}
 
-<a href="#" id="AvailabilitySticker"><img src="{{ MEDIA_URL }}images/icon-availability-sticker.png" alt="Hire Me: Available for February 2010" /></a>
+<a href="{% url about %}#hire-me" id="AvailabilitySticker"><img src="{{ MEDIA_URL }}images/icon-availability-sticker.png" alt="Hire Me: Available for February 2010" /></a>
 
-<p class="right bottom-border large">* <a href="#">iphone apps</a>, <a href="#">web solutions</a>, <a href="#">mobile sites</a></p>
+<p class="right bottom-border large">* {% spaceless %}
+	{% if categories %}
+	{% for category in categories %}
+	<a href="{{ category.get_absolute_url }}" class="{% ifequal category active_category %}active{% endifequal %}">{{ category.title|lower }}</a>{% if not forloop.last %}, {% endif %}
+	{% endfor %}
+	{% else %}
+	experiences
+	{% endif %}
+{% endspaceless %}</p>
+
+{% if pieces %}
+<ul id="PortfolioPieces">
+	{% for piece in pieces %}
+	<li class="{% if forloop.counter|divisibleby:"3" %}last-column{% endif %}">
+		<img src="{% if piece.thumbnail %}{% thumbnail piece.thumbnail.image.name 240x154 crop,upscale %}{% else %}{{ MEDIA_URL }}images/icon-no-thumb.png{% endif %}" alt="{{ piece.title }}" />
+		<a href="{{ piece.get_absolute_url }}">{{ piece.title }}</a> &mdash; {{ piece.teaser }}
+	</li>
+	{% endfor %}
+</ul>
+{% else %}
+<p>No portfolio pieces found in this category.</p>
+{% endif %}
 
 {% endblock %}

@@ -55,6 +55,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.admin',
+    'django.contrib.markup',
     
     'batchadmin',
     'core.utils',
@@ -64,6 +65,7 @@ INSTALLED_APPS = (
     'tagging',
     
     'blog',
+    'portfolio',
 )
 
 AKISMET_API_KEY = '6162dece3c36'

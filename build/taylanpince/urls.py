@@ -12,17 +12,13 @@ urlpatterns = patterns("",
     (r"^admin/(.*)", admin.site.root),
     
     # Home
-    url(r"^$", "django.views.generic.simple.direct_to_template", {
-        "template": "home.html",
-    }, name="home"),
+    url(r"^$", "portfolio.views.landing", name="home"),
     
     # Blog
     (r"^blog/", include("blog.urls")),
     
     # Work
-    url(r"^work/$", "django.views.generic.simple.direct_to_template", {
-        "template": "work.html",
-    }, name="work"),
+    (r"^work/", include("portfolio.urls")),
     
     # About
     url(r"^about/$", "django.views.generic.simple.direct_to_template", {

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% load core_utils %}
+{% load markup %}
+
+{% block title %}{{ piece.title|smartypants|safe }}{% endblock %}
+{% block header %}{{ piece.title|smartypants|safe }}{% endblock %}
+{% block nav_work %}active{% endblock %}
+
+
+{% block content %}
+
+{% if piece.teaser %}<h2>{{ piece.teaser }}</h2>{% endif %}
+
+{{ piece.body|markdown }}
+
+{% if piece.link %}<p><a href="{{ piece.link }}" rel="nofollow">Launch project site &raquo;</a></p>{% endif %}
+
+{% endblock %}
