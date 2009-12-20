@@ -1,57 +1,60 @@
-def production():
-    "Set the variables for the production environment"
-    set(fab_hosts=["67.23.4.212"])
-    set(fab_user="taylan")
-    set(remote_dir="/home/taylan/sites/taylanpince")
+from __future__ import with_statement
+
+from fabric.api import *
+from fabric.contrib.console import confirm
 
 
-def deploy(hash="HEAD"):
-    "Deploy the application by packaging a specific hash or tag from the git repo"
-    # Make sure that the required variables are here
-    require("fab_hosts", provided_by=[production])
-    require("fab_user", provided_by=[production])
-    require("remote_dir", provided_by=[production])
-    
-    # Set the commit hash (HEAD if not given)
-    set(hash=hash)
-    
+env.remote_dir = "/home/taylan/sites/taylanpince"
+env.hosts = [
+    "67.23.4.212",
+]
+
+
+def pack(hash="HEAD"):
     # Create a temporary local directory, export the given commit using git archive
-    local("mkdir ../tmp")
-    local("cd ..; git archive --format=tar --prefix=deploy/ $(hash) conf build/libs build/taylanpince | gzip > tmp/archive.tar.gz")
+    local("mkdir ../tmp", capture=False)
+    local("cd ../ && git archive --format=tar --prefix=deploy/ %s conf build/libs build/taylanpince | gzip > tmp/archive.tar.gz" % hash, capture=False)
     
     # Untar the archive to minify js files
-    local("cd ../tmp; tar -xzf archive.tar.gz; rm -f archive.tar.gz")
-    local("python /usr/local/lib/yuicompressor/bin/jsminify.py --dir=../tmp/deploy/build/taylanpince/media/js")
+    local("cd ../tmp; tar -xzf archive.tar.gz; rm -f archive.tar.gz", capture=False)
+    local("python /usr/local/lib/yuicompressor/bin/jsminify.py --dir=../tmp/deploy/build/taylanpince/media/js", capture=False)
     
     # Tarball the release again
     local("cd ../tmp; tar -cf archive.tar deploy; gzip archive.tar")
-    
+
+
+def deploy():
     # Upload the archive to the server
-    put("../tmp/archive.tar.gz", "$(remote_dir)/archive.tar.gz")
+    put("../tmp/archive.tar.gz", "%(remote_dir)s/archive.tar.gz" % env)
     
-    # Extract the files from the archive, remove the file
-    run("cd $(remote_dir); tar -xzf archive.tar.gz; rm -f archive.tar.gz")
+    with cd(env.remote_dir):
+        # Extract the files from the archive, remove the file
+        run("tar -xzf archive.tar.gz")
+        run("rm -f archive.tar.gz")
+        
+        # Move directories out of the build folder and get rid of it
+        run("mv deploy/build/* deploy/")
+        run("rm -rf deploy/build")
+        
+        # Create a symlink for the Django settings file
+        with cd("deploy/taylanpince"):
+            run("ln -s ../conf/settings.py settings_local.py")
+        
+        # Move the uploaded files directory from the active version to the new version, create a symlink
+        run("mv app/files deploy/files")
+        
+        with cd("deploy/taylanpince/media"):
+            run("ln -s ../../files")
+        
+        # Remove the active version of the app and move the new one in its place
+        run("rm -rf app")
+        run("mv deploy app")
     
-    # Move directories out of the build folder and get rid of it
-    run("mv $(remote_dir)/deploy/build/* $(remote_dir)/deploy/")
-    run("rm -rf $(remote_dir)/deploy/build")
-    
-    # Create a symlink for the Django settings file
-    run("cd $(remote_dir)/deploy/taylanpince; ln -s ../conf/settings.py settings_local.py")
-    
-    # Move the uploaded files directory from the active version to the new version, create a symlink
-    run("mv $(remote_dir)/app/files $(remote_dir)/deploy/files")
-    run("cd $(remote_dir)/deploy/taylanpince/media; ln -s ../../files")
-    
-    # Remove the active version of the app and move the new one in its place
-    run("rm -rf $(remote_dir)/app")
-    run("mv $(remote_dir)/deploy $(remote_dir)/app")
-    
-    # Sync the database, apply migrations
-    run("cd $(remote_dir)/app/taylanpince; export PYTHONPATH=../libs; ./manage.py syncdb; ./manage.py migrate")
+    # Sync the database
+    run("cd %(remote_dir)s/app/taylanpince; export PYTHONPATH=../libs; ./manage.py syncdb; ./manage.py migrate" % env)
     
     # Restart Apache
     sudo("/etc/init.d/apache2 restart")
     
     # Remove the temporary local directory
-    local("rm -rf ../tmp")
+    local("rm -rf ../tmp", capture=False)
