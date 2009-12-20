@@ -25,7 +25,7 @@ class PieceAdmin(admin.ModelAdmin):
     
     fieldsets = (
         (_("Content"), {
-            "fields": ("title", "teaser", "body", "link"),
+            "fields": ("title", "teaser", "body", "link", "client", "responsibilities"),
         }),
         (_("Relations"), {
             "fields": ("categories", ),

@@ -2,18 +2,35 @@
 
 {% load core_utils %}
 {% load markup %}
+{% load thumbnail %}
 
 {% block title %}{{ piece.title|smartypants|safe }}{% endblock %}
 {% block header %}{{ piece.title|smartypants|safe }}{% endblock %}
 {% block nav_work %}active{% endblock %}
+{% block class %}dual{% endblock %}
 
 
 {% block content %}
 
 {% if piece.teaser %}<h2>{{ piece.teaser }}</h2>{% endif %}
 
-{{ piece.body|markdown }}
+{% if piece.body %}{{ piece.body|markdown }}{% endif %}
+
+{% if piece.photos %}
+{% for photo in piece.photos %}
+<img src="{% thumbnail photo.image.name 690x500 crop %}" alt="{{ photo.title }}" />
+{% endfor %}
+{% endif %}
 
 {% if piece.link %}<p><a href="{{ piece.link }}" rel="nofollow">Launch project site &raquo;</a></p>{% endif %}
+
+{% endblock %}
+
+
+{% block sidebar %}
+
+<p><strong>Client:</strong> {{ piece.client }}</p>
+<p><strong>Date:</strong> {{ piece.creation_date|date:"F Y" }}</p>
+<p><strong>Responsibilities:</strong> {{ piece.responsibilities }}</p>
 
 {% endblock %}

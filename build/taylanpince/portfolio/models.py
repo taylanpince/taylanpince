@@ -57,6 +57,8 @@ class Piece(models.Model):
     title = models.CharField(_("Title"), max_length=255)
     teaser = models.TextField(_("Teaser"), blank=True)
     body = models.TextField(_("Body"), blank=True)
+    client = models.CharField(_("Client"), blank=True, max_length=255)
+    responsibilities = models.TextField(_("Responsibilities"), blank=True)
     link = models.URLField(_("Link"), blank=True, null=True, verify_exists=True)
 
     # Relations
