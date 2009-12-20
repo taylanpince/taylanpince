@@ -718,6 +718,7 @@ body.dual #Pagination {
     background-color: #c36214;
     color: #FFF;
     font-size: 13px;
+	line-height: 30px;
 }
 
 #Pagination li a.active,
@@ -735,6 +736,10 @@ body.dual #Pagination {
     color: #32331d;
     border-color: #32331d;
     background-color: #c0bf99;
+}
+
+#Pagination li.first-child a {
+	margin-right: 0px;
 }
 
 /* @end */

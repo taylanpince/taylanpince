@@ -8,7 +8,7 @@ def landing(request):
     """
     Renders the landing page for all portfolio items
     """
-    categories = Category.objects.all()
+    categories = Category.objects.order_by("pk")
     pieces = Piece.objects.all()
     active_category = None
     

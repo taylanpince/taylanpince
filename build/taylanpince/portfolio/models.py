@@ -39,6 +39,7 @@ class Photo(models.Model):
     title = models.CharField(_("Title"), max_length=255)
     image = models.ImageField(_("Image"), upload_to="files/portfolio")
     piece = models.ForeignKey("portfolio.Piece", verbose_name=_("Piece"))
+    thumbnail = models.BooleanField(_("Thumbnail"), default=False)
 
     class Meta:
         verbose_name = _("Photo")
@@ -46,7 +47,6 @@ class Photo(models.Model):
 
     def __unicode__(self):
         return self.title
-
 
 
 class Piece(models.Model):
@@ -66,15 +66,19 @@ class Piece(models.Model):
     slug = AutoSlugField(_("Slug"), populate_from="title")
     published = models.BooleanField(_("Published"), default=True)
     creation_date = CreateDateTimeField(_("Creation Date"), editable=True)
+    
+    # Managers
+    admin_objects = models.Manager()
+    objects = PieceManager()
 
     @property
     def photos(self):
-        return Photo.objects.filter(piece=self).order_by("pk")
+        return Photo.objects.filter(piece=self, thumbnail=False).order_by("pk")
 
     @property
     def thumbnail(self):
         try:
-            return self.photos[0]
+            return Photo.objects.filter(piece=self, thumbnail=True)[0]
         except IndexError:
             return None
 

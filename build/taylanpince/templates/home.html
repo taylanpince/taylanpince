@@ -27,7 +27,7 @@
 <ul id="PortfolioPieces">
 	{% for piece in pieces %}
 	<li class="{% if forloop.counter|divisibleby:"3" %}last-column{% endif %}">
-		<img src="{% if piece.thumbnail %}{% thumbnail piece.thumbnail.image.name 240x154 crop,upscale %}{% else %}{{ MEDIA_URL }}images/icon-no-thumb.png{% endif %}" alt="{{ piece.title }}" />
+		<a href="{{ piece.get_absolute_url }}" class="no-border"><img src="{% if piece.thumbnail %}{% thumbnail piece.thumbnail.image.name 240x154 crop,upscale %}{% else %}{{ MEDIA_URL }}images/icon-no-thumb.png{% endif %}" alt="{{ piece.title }}" /></a>
 		<a href="{{ piece.get_absolute_url }}">{{ piece.title }}</a> &mdash; {{ piece.teaser }}
 	</li>
 	{% endfor %}
