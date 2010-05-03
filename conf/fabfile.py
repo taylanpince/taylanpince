@@ -23,6 +23,11 @@ def pack(hash="HEAD"):
     local("cd ../tmp; tar -cf archive.tar deploy; gzip archive.tar")
 
 
+def clean():
+    # Remove the temporary local directory
+    local("rm -rf ../tmp", capture=False)
+
+
 def deploy():
     # Upload the archive to the server
     put("../tmp/archive.tar.gz", "%(remote_dir)s/archive.tar.gz" % env)
@@ -41,7 +46,7 @@ def deploy():
             run("ln -s ../conf/settings.py settings_local.py")
         
         # Move the uploaded files directory from the active version to the new version, create a symlink
-        run("mv app/files deploy/files")
+        sudo("mv app/files deploy/files")
         
         with cd("deploy/taylanpince/media"):
             run("ln -s ../../files")
@@ -56,5 +61,4 @@ def deploy():
     # Restart Apache
     sudo("/etc/init.d/apache2 restart")
     
-    # Remove the temporary local directory
-    local("rm -rf ../tmp", capture=False)
+    clean()
